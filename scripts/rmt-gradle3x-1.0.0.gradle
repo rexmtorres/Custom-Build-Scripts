@@ -262,13 +262,13 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
 
 		// Generates the JavaDoc with UML using yDoc doclet
 		project.task("rmtJavaDoc${varName}", type: Javadoc) {
-			if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-				def osBit = System.properties['sun.arch.data.model']
-				executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
-				println "OS: Windows ${osBit}-bit"
-				println "Using bundled javadoc.exe (JDK 7u80)..."
-				println "   \"$executable\""
-			}
+			// if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+			// 	def osBit = System.properties['sun.arch.data.model']
+			// 	executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
+			// 	println "OS: Windows ${osBit}-bit"
+			// 	println "Using bundled javadoc.exe (JDK 7u80)..."
+			// 	println "   \"$executable\""
+			// }
 			
 			dependsOn project.tasks["rmtExcludeRes${varName}"]
 			mustRunAfter project.tasks["rmtExcludeRes${varName}"]
