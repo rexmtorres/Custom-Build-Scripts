@@ -22,7 +22,7 @@
 
 ext.cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
 ext.binVersion = "v1"
-ext.cacheRoot = "${rootProject.rootDir}/.gradle/rmtcache/${binVersion}"
+ext.cacheRoot = "${System.getProperty("user.home")}/.gradle/rmtcache/${binVersion}"
 
 def downloadBin() {
     def url = new URL("${cdnRoot}/bin_${binVersion}.zip")
