@@ -20,9 +20,9 @@
  * Creation date      : 07 March 2016
  */
 
-def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
-def binVersion = "v1"
-def cacheRoot = "${rootProject.rootDir}/.gradle/rmtcache/${binVersion}"
+ext.cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
+ext.binVersion = "v1"
+ext.cacheRoot = "${rootProject.rootDir}/.gradle/rmtcache/${binVersion}"
 
 def downloadBin() {
     def url = new URL("${cdnRoot}/bin_${binVersion}.zip")
