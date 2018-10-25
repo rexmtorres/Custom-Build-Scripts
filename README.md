@@ -1,7 +1,7 @@
 Custom-Build-Scripts
 ======
 
-Helper functions to help set up Gradle tasks for commonly used procedures.  To use this in your Android Studio Gradle projects, import this script into your module by adding:
+These are a set of helper methods to help set up Gradle tasks for commonly used actions.  To use this in your Android Studio Gradle projects, apply this script into your module by adding:
 ```gradle
 apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
 ```
@@ -11,7 +11,9 @@ apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradl
 Available Methods
 ======
 
-### **exportAar**
+After applying the script, you will have access to the following methods described below.
+
+## **exportAar**
 Exports the AAR and extracts the JAR (inside the AAR) into the specified location renaming the files to the specified name.
   
 ```gradle
@@ -26,7 +28,7 @@ exportAar(variant, destFolder, baseFileName)
 
 ---
 
-### **exportApk**
+## **exportApk**
 Exports the APK into the specified location.
 
 ```gradle
@@ -42,7 +44,7 @@ exportApk(variant, destFolder, baseFileName, unsignApk)
 
 ---
 
-### **exportProguardMapping**
+## **exportProguardMapping**
 Copies the Proguard map files into a specified location.
 
 ```gradle
@@ -55,7 +57,7 @@ exportProguardMapping(variant, outputFolder)
 
 ---
 
-### **createJavaDoc**
+## **createJavaDoc**
 Generates JavaDoc.
 
 ```gradle
@@ -72,7 +74,7 @@ createJavaDoc(variant, additionalSourceFiles, additionalClasspathFiles, excluded
 
 ---
 
-### **calculateLinesOfCode**
+## **calculateLinesOfCode**
 Generates step count of the source code using [Amateras StepCounter](http://amateras.osdn.jp/cgi-bin/fswiki/wiki.cgi?page=StepCounter).
   
   ```gradle
@@ -87,7 +89,15 @@ Generates step count of the source code using [Amateras StepCounter](http://amat
 Usage
 ======
 
-Below is an example of a library module using [**exportAar()**](#exportAar), [**calculateLinesOfCode()**](calculateLinesOfCode) and [**createJavaDoc()**](createJavaDoc):
+The methods will generate several Gradle tasks.  Most of them will be categorized into the `rmt` group.  However, the main task to take note of is the **`createDelivery`** task, and its variant-specific alternatives, which you can find under the `rmtDelivery` group.  Simply execute the **`createDelivery`** to start assembling your module, exporting the AAR/JAR/APK files, and generating the Javadoc, step count and Proguard map files.
+
+![gradle-tasks-pane.png](docs/gradle-tasks-pane.png)
+
+<br/>  
+
+## Library Module Example
+
+Below is an example of a library module using [**exportAar()**](#exportaar), [**calculateLinesOfCode()**](#calculatelinesofcode) and [**createJavaDoc()**](#createjavadoc):
 ```gradle
 apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
 
@@ -128,7 +138,9 @@ android {
 
 <br/>  
 
-Below is an example of an application module using [**exportApk()**](exportApk), [**calculateLinesOfCode()**](calculateLinesOfCode), [**exportProguardMapping()**](exportProguardMapping) and [**createJavaDoc()**](createJavaDoc):
+## Application Module Example
+
+Below is an example of an application module using [**exportApk()**](#exportapk), [**calculateLinesOfCode()**](#calculatelinesofcode), [**exportProguardMapping()**](#exportproguardmapping) and [**createJavaDoc()**](#createjavadoc):
 ```gradle
 apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
 
@@ -173,4 +185,3 @@ android {
     }
 }
 ```
-
