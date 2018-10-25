@@ -20,11 +20,36 @@
  */
  
 def uriToFile(uri) {
-    def fileURL = new java.net.URL(uri)
-    def fileCopy = new java.io.File(fileURL.toURI())
+    def url = new URL(uri)
+    def localFile = new File("${rootProject.rootDir}/.gradle/rmtcache", url.getFile())
+    def localRoot = localFile.parentFile
 
-    println "$uri => ${fileCopy.absolutePath}"
-    return fileCopy
+    if (!localRoot.exists()) {
+        localRoot.mkdirs()
+    }
+
+    println "URL file: " + localFile
+
+    def connection = url.openConnection()
+    def ins = connection.getInputStream()
+    def fos = new FileOutputStream(localFile)
+
+    byte[] buf = new byte[512]
+
+    while (true) {
+        int len = ins.read(buf)
+
+        if (len == -1) {
+            break
+        }
+
+        fos.write(buf, 0, len)
+    }
+
+    ins.close()
+    fos.flush()
+    fos.close()
+    return localFile
 }
 
 // -------------------------------------------------------------------------------------------------
