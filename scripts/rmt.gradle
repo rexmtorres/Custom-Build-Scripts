@@ -17,7 +17,7 @@ println "Version: ${latestVersion}"
 println "========================================================================================="
 println "\n"
 
-def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
+def cdnRoot = "https://gitcdn.link/repo/rexmtorres/Custom-Build-Scripts/master"
 apply from: "${cdnRoot}/scripts/rmt-${latestVersion}.gradle"
 
 def getAndroidGradlePluginVersion() {
