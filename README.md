@@ -87,7 +87,7 @@ Generates step count of the source code using [Amateras StepCounter](http://amat
 Usage
 ======
 
-Below is an example of a library module using **exportAar()**, **calculateLinesOfCode()** and **createJavaDoc()**:
+Below is an example of a library module using [**exportAar()**](#exportAar), [**calculateLinesOfCode()**](calculateLinesOfCode) and [**createJavaDoc()**](createJavaDoc):
 ```gradle
 apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
 
@@ -126,7 +126,9 @@ android {
 }
 ```
 
-Below is an example of an application module using **exportApk()**, **calculateLinesOfCode()**, **exportProguardMapping()** and **createJavaDoc()**:
+<br/>  
+
+Below is an example of an application module using [**exportApk()**](exportApk), [**calculateLinesOfCode()**](calculateLinesOfCode), [**exportProguardMapping()**](exportProguardMapping) and [**createJavaDoc()**](createJavaDoc):
 ```gradle
 apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
 
