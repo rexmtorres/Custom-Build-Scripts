@@ -592,7 +592,8 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         
 		if(!optionsFile.exists()) {
 			println "Using default JavaDoc options..."
-			optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+			// optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+            optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default_noydoc.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
 		}
 		
 		// options.docletpath = files(configurations.yDoclet.files,
@@ -606,8 +607,6 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         // options.optionFiles << optionsFile
         // options.memberLevel = javadocMemberLevel
 
-		options.docletpath = files(variant.javaCompile.classpath,
-				file("${project.buildDir}/intermediates/classes/${output.dirName}")).asType(List)
         options.optionFiles << optionsFile
         options.memberLevel = javadocMemberLevel
     }
@@ -800,7 +799,8 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         
 		if(!optionsFile.exists()) {
 			println "Using default JavaDoc options..."
-			optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+			// optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+            optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default_noydoc.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
 		}
 		
 		// options.docletpath = files(configurations.yDoclet.files,
@@ -814,8 +814,6 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         // options.optionFiles << optionsFile
         // options.memberLevel = javadocMemberLevel
 		
-		options.docletpath = files(variant.javaCompile.classpath,
-				file("${project.buildDir}/intermediates/classes/${output.dirName}")).asType(List)
         options.optionFiles << optionsFile
         options.memberLevel = javadocMemberLevel
     }
