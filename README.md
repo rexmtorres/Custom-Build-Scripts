@@ -6,7 +6,10 @@ Helper functions to help set up Gradle tasks for commonly used procedures.  To u
 apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
 ```
 
-## Available Methods
+<br/>  
+
+Available Methods
+======
 
 ### **exportAar**
 Exports the AAR and extracts the JAR (inside the AAR) into the specified location renaming the files to the specified name.
@@ -78,3 +81,10 @@ Generates step count of the source code using [Amateras StepCounter](http://amat
   * **variant**: *BaseVariant* - build variant to be processed
   * **outputDir**: *String* - path to where the step count file will be placed
   * **outputFile**: *String* - file name of the step count file
+
+<br/>  
+
+Usage
+======
+
+TBD
