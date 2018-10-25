@@ -20,36 +20,42 @@
  * Creation date      : 07 March 2016
  */
 
-def uriToFile(uri) {
-    def url = new URL(uri)
-    def localFile = new File("${rootProject.rootDir}/.gradle/rmtcache", url.getFile())
+def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
+def binVersion = "v1"
+def cacheRoot = "${rootProject.rootDir}/.gradle/rmtcache/${binVersion}"
+
+def downloadBin() {
+    def url = new URL("${cdnRoot}/bin_${binVersion}.zip")
+    def localFile = new File("${cacheRoot}/bin.zip")
     def localRoot = localFile.parentFile
 
     if (!localRoot.exists()) {
         localRoot.mkdirs()
     }
 
-    println "URL file: " + localFile
-
-    def connection = url.openConnection()
-    def ins = connection.getInputStream()
-    def fos = new FileOutputStream(localFile)
-
-    byte[] buf = new byte[512]
-
-    while (true) {
-        int len = ins.read(buf)
-
-        if (len == -1) {
-            break
-        }
-
-        fos.write(buf, 0, len)
+    url.withInputStream { ins ->
+        localFile.withOutputStream { ous -> ous << ins }
     }
 
-    ins.close()
-    fos.flush()
-    fos.close()
+    copy {
+        from zipTree(localFile)
+        into localRoot
+    }
+}
+
+def binFile(location) {
+    def localFile = new File(location)
+
+    println "File => ${localFile}"
+
+    if (localFile.exists()) {
+        println "Local cache exists!  Reusing..."
+        return localFile
+    }
+
+    println "Local cache does not exist!  Downloading..."
+    downloadBin()
+
     return localFile
 }
 
@@ -58,8 +64,7 @@ def uriToFile(uri) {
 // -------------------------------------------------------------------------------------------------
 import org.apache.tools.ant.taskdefs.condition.Os
 
-def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
-def COMMON_TOOLS = "${cdnRoot}/bin"
+def COMMON_TOOLS = "${cacheRoot}/bin"
 
 configurations {
     yDoclet
@@ -304,15 +309,15 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
 			
 			if(!optionsFile.exists()) {
 				println "Using default JavaDoc options..."
-				optionsFile = uriToFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+				optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
 			}
 			
 			options.docletpath = files(configurations.yDoclet.files,
 					variant.javaCompile.classpath,
 					file("${project.buildDir}/intermediates/classes/${output.dirName}")).asType(List)
 			options.doclet = "ydoc.doclets.YStandard"
-			options.addStringOption("resourcepath", uriToFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources").absolutePath)
-			options.addStringOption("filterpath", uriToFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar").absolutePath)
+			options.addStringOption("resourcepath", binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources").absolutePath)
+			options.addStringOption("filterpath", binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar").absolutePath)
 			options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
 			options.addStringOption("tag", "y.exclude")
 			options.optionFiles << optionsFile
