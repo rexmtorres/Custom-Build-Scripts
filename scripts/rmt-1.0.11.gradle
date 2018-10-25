@@ -19,7 +19,7 @@
  * Creation date      : 07 March 2016
  */
  
-def cdnRoot = "https://gitcdn.link/repo/rexmtorres/Custom-Build-Scripts/master"
+def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
 def binVersion = "v1"
 def cacheRoot = "${rootProject.rootDir}/.gradle/rmtcache/${binVersion}"
 
