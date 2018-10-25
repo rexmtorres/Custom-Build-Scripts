@@ -6,7 +6,7 @@ def gradleVersion = project.getGradle().getGradleVersion()
 println "Gradle Version: " + gradleVersion
 println "Android Gradle Plugin Version: " + pluginVersion
 
-def cdnRoot = "https://gitcdn.link/repo/rexmtorres/Custom-Build-Scripts/master"
+def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
 def latestVersion = gradleVersion.matches(/^4\.[456789]\d*\.*\d*$/) ? "${cdnRoot}/scripts/gradle4x-1.0.0" :    // Use "gradle4x-1.0.0" if Gradle version is 4.4+.
     (pluginVersion.matches(/^3\.\d+\.\d+$/) ? "${cdnRoot}/scripts/gradle3x-1.0.0" :                            // Else, use "gradle3x-1.0.0" if Android Gradle Plugin version is 3.0+ but Gradle version is below 4.4.
     "${cdnRoot}/scripts/1.0.11")                                                                               // Else, use "1.0.11".

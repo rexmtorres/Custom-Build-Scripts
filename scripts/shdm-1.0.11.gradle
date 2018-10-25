@@ -23,7 +23,7 @@
 // -------------------------------------------------------------------------------------------------
 import org.apache.tools.ant.taskdefs.condition.Os
 
-def cdnRoot = "https://gitcdn.link/repo/rexmtorres/Custom-Build-Scripts/master"
+def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
 def COMMON_TOOLS = "${cdnRoot}/bin"
 
 configurations {
