@@ -87,4 +87,88 @@ Generates step count of the source code using [Amateras StepCounter](http://amat
 Usage
 ======
 
-TBD
+Below is an example of a library module using **exportAar()**, **calculateLinesOfCode()** and **createJavaDoc()**:
+```gradle
+apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
+
+android {
+    // ...
+
+    def libName = "MyLibrary"
+
+    libraryVariants.all { variant ->
+        def flavorName = variant.flavorName
+        def buildTypeName = variant.buildType.name
+        def variantName = variant.name
+        def variantPath = variant.dirName
+        def baseJarName = "${libName}_v${defaultConfig.versionName}"
+        def destFolder = "${project.rootProject.buildDir}/${libName}/${variantPath}"
+
+        // Export the AAR and JAR files
+        exportAar(variant, destFolder, baseJarName)
+
+        // Generate step count using Amateras StepCounter
+        calculateLinesOfCode(variant,
+                "${project.rootProject.rootDir}/stepCounter/${project.name}/${variantPath}",
+                "${libName}.csv")
+
+        // Javadoc
+        def javadocTitle = "${libName} [${buildTypeName.capitalize()}] - v${defaultConfig.versionName} API Reference"
+        def archiveName = "${variantPath}/${libName}_javadoc"
+
+        createJavaDoc(variant,
+                null,                                                               // no additional sources
+                files("$project.buildDir/intermediates/classes/${variantPath}"),    // add a class reference so that JavaDoc can still find the excluded classes
+                ['**/R.java', '**/internal/**/*.java'],      // exclude these files
+                javadocTitle, JavadocMemberLevel.PROTECTED,
+                archiveName, destFolder)
+    }
+}
+```
+
+Below is an example of an application module using **exportApk()**, **calculateLinesOfCode()**, **exportProguardMapping()** and **createJavaDoc()**:
+```gradle
+apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradle'
+
+android {
+    // ...
+
+    def appName = "MyApplication"
+
+    applicationVariants.all { variant ->
+        def flavorName = variant.flavorName
+        def buildTypeName = variant.buildType.name
+        def variantName = variant.name
+        def variantPath = variant.dirName
+        def baseApkName = "${appName}_v${defaultConfig.versionName}"
+        def destFolder = "${project.rootProject.buildDir}/${appName}/${variantPath}"
+
+        // Export signed and unsigned APKs
+        exportApk(variant, "${destFolder}/signed/", baseApkName, false)
+        exportApk(variant, "${destFolder}/unsigned/", baseApkName, true)
+
+        // Generate step count using Amateras StepCounter
+        calculateLinesOfCode(variant,
+                "${project.rootProject.rootDir}/stepCounter/${project.name}/${variantPath}",
+                "${appName}.csv")
+
+        // Only obfuscated projects have Proguard maps
+        if (variant.buildType.minifyEnabled) {
+            exportProguardMapping(variant,
+                    "${project.rootProject.rootDir.absolutePath}/proguardMap/${project.name}/${variantPath}/${baseApkName}")
+        }
+
+        // Javadoc
+        def javadocTitle = "${appName} [${buildTypeName.capitalize()}] - v${defaultConfig.versionName} API Reference"
+        def archiveName = "${variantPath}/${appName}_javadoc"
+
+        createJavaDoc(variant,
+                null,                                                               // no additional sources
+                files("$project.buildDir/intermediates/classes/${variantPath}"),    // add a class reference so that JavaDoc can still find the excluded classes
+                ['**/R.java', '**/internal/**/*.java'],      // exclude these files
+                javadocTitle, JavadocMemberLevel.PROTECTED,
+                archiveName, destFolder)
+    }
+}
+```
+
