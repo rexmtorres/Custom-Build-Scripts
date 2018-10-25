@@ -6,13 +6,12 @@
  * Example:
  *     apply from: 'scripts/shdm-1.0.0.gradle'
  *
- * This is specifically for Android Gradle Plugin v3.x and up
- 
  * This will make the following functions available:
- *     + exportAar - Exports the AAR and extracts the JAR (inside the AAR) into the specified
- *                   location renaming the files to the specified name.
- *     + exportApk - TODO: To be implemented
- *     + exportProguardMapping - Copies the Proguard map files into a specified folder.
+ *     + renameOutputFile - Copies and renames the output APK/AAR into a specified folder.  If the
+ *                          module is a library module (AAR), a JAR file will also be generated and
+ *                          put into the output folder.
+ *     + unsignApk - Removes the signature of a signed APK.
+ *     + exportApkProguardMapping - Copies the Proguard map files into a specified folder.
  *     + createJavaDoc - Generates JavaDoc w/ UML diagrams from the specified source files.
  *     + calculateLinesOfCode - Generates step count of the source code using Amateras StepCounter.
  * 
@@ -31,62 +30,337 @@ configurations {
     yDoclet
 }
 
-// TODO: implement exportApk w/ unsign feature
-//    // for library projects, use "compileXXXSources".  for apk projects, use "packageXXX"
-//    //tasks["export{variantName.capitalize()}Aar"].mustRunAfter tasks["package${variantName.capitalize()}"]
-ext.exportAar = {
-        /* LibraryVariant */ variant,
-        /* String */ destFolder,
-        /* String */ baseFileName ->
+/**
+ * <p>
+ * Moves and renames the output file to a specified folder.
+ *
+ * <p>
+ * For library projects, a JAR file will also be generated in addition to the AAR file.
+ *
+ * @param project The project/module that is being processed.
+ * @param output The build variant in the module that is being built.
+ * @param newName New name of the file.
+ * @param outputDir Directory where the final output file will be placed
+ * @return The new file name
+ */
+ext.renameOutputFile = { /* Project */ project, /* BaseVariantOutput */ output, /* String */ newName, /* String */ outputDir ->
+    println("+renameOutputFile(\n" +
+            "\tproject: [${project}],\n" +
+            "\toutput: [${output}],\n" +
+            "\tnewName: [${newName}],\n" +
+            "\toutputDir: [${outputDir}])")
 
-    def fileExt = "aar"
+    def checkDir = new File("${project.buildDir}/intermediates/classes/${output.dirName}")
+    def newFileName = ""
 
-    def flavorName = variant.flavorName
-    def buildTypeName = variant.buildType.name
-    def variantName = variant.name
+    println(" \tCheck dir: ${checkDir}")
 
-    println("flavorName: ${flavorName}")
-    println("buildTypeName: ${buildTypeName}")
-    println("variantName: ${variantName}")
+    // 09Jun2016 - remove the checkDir check as it causes some tasks to be skipped.
+    // checkDir was needed before when the task dependencies were not yet properly set
+    // causing them to be prematurely configured/executed.
+    //if(checkDir.exists()) {
+    if(true) {    // TODO: when we're sure we don't need checkDir check anymore, move the code out of this block.
+        def libVariant
+        def file
 
-    variant.outputs.all {
-        def variantPath = ((flavorName != null) && !flavorName.isEmpty()) ?
-                "${flavorName}/${buildTypeName}" : buildTypeName
+        try {
+            if(output.zipAlign) {
+                file = output.outputFile
+            } else {
+                file = output.packageApplication.outputFile
+            }
 
-        def fileName = "${variantPath}/${baseFileName}.${fileExt}"
-        def buildFile = file("${project.buildDir}/outputs/${fileExt}/$fileName")
+            libVariant = false
+        } catch(Exception e) {    // for LibraryVariants
+            file = output.outputFile
+            libVariant = true
+        }
 
-        // This is the recommended way to rename APKs in gradle 3.0+ but,
-        // this should only be used for renaming the APK file itself, not
-        // moving it to another location outside the build folder.
-        outputFileName = fileName
+        def oldName = file.name
+        def ext = ""
+        def index = file.name.lastIndexOf('.')
 
-        // We now need to create a task to move/copy the APK/AAR to a new location.
-        task("shdmExport${variantName.capitalize()}${fileExt.capitalize()}") {
-			group "SHDM"
-			
-            inputs.file(buildFile)
-            outputs.file("${destFolder}/${baseFileName}.${fileExt}")
-            outputs.upToDateWhen { false }
+        if(index > 0) {
+            ext = file.name.substring(index);
+        }
 
-            doLast {
-                copy {
-                    from(buildFile)
-                    into(destFolder)
+        println(" \textension: ${ext}")
+        println(" \told name: ${oldName}")
+
+        // rename the file (duh)
+        newFileName = file.name.replace("${oldName}", "${newName}${ext}")
+
+        println "new name: ${newFileName}"
+
+        def distDir = new File(outputDir)
+        def varName = output.name.capitalize()
+
+        if(!libVariant) {
+            File outApk = null
+
+//            if(output.zipAlign) {
+//                output.outputFile = new File(distDir, newFileName)
+//            } else {
+//                output.packageApplication.outputFile = new File(distDir, newFileName)
+//            }
+
+            println "shdmCopyApk${varName}> output.zipAlign: ${output.zipAlign}..."
+
+            if(output.zipAlign) {
+                outApk = output.outputFile
+            } else {
+                outApk = output.packageApplication.outputFile
+            }
+
+            project.task("shdmCopyApk${varName}", type: Copy) {
+				group "SHDM"
+				
+                if(output.zipAlign) {
+                    dependsOn project.tasks["zipalign${varName}"]
+                    mustRunAfter project.tasks["zipalign${varName}"]
+                } else {
+                    dependsOn project.tasks["package${varName}"]
+                    mustRunAfter project.tasks["package${varName}"]
+                }
+            
+                if(!distDir.exists()) {
+                    distDir.mkdirs()
                 }
 
-				copy {
-					from zipTree(buildFile)
-					into destFolder
-					include "*.jar"
-					rename "classes.jar", "${baseFileName}.jar"
-				}
+                def dest = new File(distDir, newFileName)
+
+                println "shdmCopyApk${varName}> Source: ${outApk.absolutePath}..."
+                println "shdmCopyApk${varName}> Source exits: ${outApk.exists()}"
+                println "shdmCopyApk${varName}> Destination: ${dest.absolutePath}..."
+                println "shdmCopyApk${varName}> Destination exits: ${dest.exists()}"
+
+                outputs.upToDateWhen {dest.exists()}
+                inputs.file outApk
+                outputs.file dest
+
+                println "shdmCopyApk${varName}> Saving ${newFileName} to ${distDir.absolutePath}..."
+
+                from("${outApk.absolutePath}")
+                into(distDir)
+                rename(outApk.name, newFileName)
+            }
+            
+            project.tasks["assemble${varName}"].dependsOn project.tasks["shdmCopyApk${varName}"]
+        } else {
+            // For LibraryVariants, extract the JAR file from the AAR file and export it to the
+            // output folder (in addition to the AAR file).  AAR file is only supported in Android
+            // Studio; we still need the JAR file for Eclipse.
+
+            output.outputFile = new File(distDir, newFileName)
+
+            def explodedAar = new File("${project.buildDir}/tmp.exploded-aar/${output.dirName}")
+            def jarFileName = newFileName.replace(".aar", ".jar")
+
+            // Extract the classes.jar file inside the AAR file and rename it to the variant name.
+            project.task("shdmExtractJar${varName}", type: Copy) {
+                dependsOn project.tasks["bundle${varName}"]
+                mustRunAfter project.tasks["bundle${varName}"]
+                
+                from zipTree(output.outputFile)
+                into(explodedAar)
+                rename("classes.jar", jarFileName)
+            }
+
+            // Copy the extracted JAR file into the output directory.
+            project.task("shdmCopyJar${varName}", type: Copy) {
+				group "SHDM"
+				
+                dependsOn project.tasks["shdmExtractJar${varName}"]
+                mustRunAfter project.tasks["shdmExtractJar${varName}"]
+                
+                from("${explodedAar.absolutePath}/${jarFileName}")
+                into(output.outputFile.parentFile)
+            }
+
+            project.tasks["assemble${varName}"].dependsOn project.tasks["shdmCopyJar${varName}"]
+        }
+
+        println(" \tOutput: ${newFileName}")
+    }
+    
+    //project.tasks.matching { task ->
+    //    task.name.startsWith('shdm')
+    //}*.group = 'SHDM'
+    
+    println("-renameOutputFile")
+    println("---------------------------------------------------------------------------------")
+    return newFileName
+}
+
+/**
+ * <p>
+ * "Unsigns" the specified APK by removing the META-INF folder inside it, which contains the signature(s).
+ *
+ * @param project The project/module that is being processed.
+ * @param variant The build variant in the module that is being built.
+ * @param apkIn The signed APK to be unsigned.
+ * @param apkOut The unsigned APK to be generated.  May be set to <code>null</code>,
+ *               in which case, apkIn will be overwritten with the generated unsigned APK.
+ */
+ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */ apkIn, /* String */ apkOut ->
+    println("+unsignApk(\n" +
+            "\tproject: [${project}],\n" +
+            "\tvariant: [${variant.name}: ${variant}],\n" +
+            "\tapkIn: [${apkIn}],\n" +
+            "\tapkOut: [${apkOut}])")
+    String varName = variant.name.capitalize()
+
+    def fApkIn = file(apkIn)
+    def fApkOut
+
+    // If apkOut is null, use apkIn as output
+    if(apkOut == null) {
+        fApkOut = file(apkIn)
+    } else {
+        fApkOut = file(apkOut)
+    }
+
+    def unpacked = file("${project.buildDir}/tmp/unpacked/${variant.dirName}")
+    def metaInf = file("${project.buildDir}/tmp/unpacked/${variant.dirName}/META-INF")
+
+    // Delete any old files in the temp folder
+    project.task("shdmUnsignApk${varName}00DeleteTmp", type: Delete) {
+        try {
+            dependsOn project.tasks["shdmCopyApk${varName}"]
+            mustRunAfter project.tasks["shdmCopyApk${varName}"]
+        } catch(Exception e) {
+            println "shdmCopyApk${varName} does not exist!"
+            dependsOn project.tasks["package${varName}"]
+            mustRunAfter project.tasks["package${varName}"]
+        }
+    
+        outputs.upToDateWhen {false}
+
+        doLast {
+            println("shdmUnsignApk${varName}00DeleteTmp> Unpacked: ${unpacked}")
+        }
+
+        if(unpacked.exists()) {
+            doLast {
+                println("shdmUnsignApk${varName}00DeleteTmp> Deleting: ${unpacked}")
+            }
+
+            delete unpacked
+        }
+    }
+
+    // Unzip the APK into a temp folder
+    //project.task("shdmUnsignApk${varName}01Unpack", type: Copy) {
+    project.task("shdmUnsignApk${varName}01Unpack") {
+        dependsOn project.tasks["shdmUnsignApk${varName}00DeleteTmp"]
+        mustRunAfter project.tasks["shdmUnsignApk${varName}00DeleteTmp"]
+    
+        outputs.upToDateWhen {false}
+
+        doLast {
+            if(fApkIn.exists() && fApkIn.isFile() && fApkIn.absolutePath.toLowerCase().endsWith(".apk")) {
+                println("shdmUnsignApk${varName}01Unpack> Unpacking ${fApkIn.absolutePath} ${unpacked}")
+
+                copy {
+                    from zipTree(fApkIn)
+                    into unpacked
+                }
+            } else {
+                println("shdmUnsignApk${varName}01Unpack> ${fApkIn.absolutePath} is not a valid APK!  Task skipped!")
             }
         }
     }
 
-    tasks["shdmExport${variantName.capitalize()}${fileExt.capitalize()}"].mustRunAfter tasks["compile${variantName.capitalize()}Sources"]
-    tasks["assemble${variantName.capitalize()}"].dependsOn tasks["shdmExport${variantName.capitalize()}${fileExt.capitalize()}"]
+    // Delete the META-INF folder containing the signature(s)
+    project.task("shdmUnsignApk${varName}02DeleteCert", type: Delete) {
+        dependsOn project.tasks["shdmUnsignApk${varName}01Unpack"]
+        mustRunAfter project.tasks["shdmUnsignApk${varName}01Unpack"]
+    
+        outputs.upToDateWhen {false}
+
+        doLast {
+            println("shdmUnsignApk${varName}02DeleteCert> META-INF: ${metaInf}")
+            println("shdmUnsignApk${varName}02DeleteCert> Deleting: ${metaInf}")
+        }
+
+        delete metaInf
+    }
+
+    // Zip the files back from the temp folder
+    def arcPath = file("${variant.dirName}/unsigned.apk")
+
+    // These force task "shdmUnsignApk${varName}" to always be executed.
+    // Without them, the task will be skipped.
+    def task04Input = file("${project.buildDir}/tmp/shdmUnsignApk${varName}.in")
+    def task04Output = file("${project.buildDir}/tmp/shdmUnsignApk${varName}.out")
+
+    project.task("shdmUnsignApk${varName}03Zip", type: Zip) {
+        dependsOn project.tasks["shdmUnsignApk${varName}02DeleteCert"]
+        mustRunAfter project.tasks["shdmUnsignApk${varName}02DeleteCert"]
+    
+        outputs.upToDateWhen {false}
+
+        baseName "${variant.dirName}/unsigned.apk"
+        from unpacked
+
+        doLast {
+            println("shdmUnsignApk${varName}03Zip> Unpacked: ${unpacked}")
+            println("shdmUnsignApk${varName}03Zip> Base Name: ${baseName}")
+            println("shdmUnsignApk${varName}03Zip> Zipped ${unpacked} to ${archivePath}")
+
+            arcPath = file(archivePath)
+
+            if(!task04Input.exists()) {
+                task04Input.createNewFile();
+            }
+
+            if(task04Input.exists()) {
+                task04Input.write("timestamp " + System.currentTimeMillis());
+            }
+        }
+    }
+
+    // Copy the unsigned APK into the final output APK
+    //project.task("shdmUnsignApk${varName}04Copy", type: Copy) {
+    project.task("shdmUnsignApk${varName}") {
+		group "SHDM"
+		
+        dependsOn project.tasks["shdmUnsignApk${varName}03Zip"]
+        mustRunAfter project.tasks["shdmUnsignApk${varName}03Zip"]
+
+        outputs.upToDateWhen {false}
+
+        inputs.file task04Input
+        outputs.file task04Output
+
+        doLast {
+            println("shdmUnsignApk${varName}> Packed: ${arcPath}")
+            println("shdmUnsignApk${varName}> Copying ${arcPath} to ${fApkOut}")
+
+            if(!task04Output.exists()) {
+                task04Output.createNewFile();
+            }
+
+            if(task04Output.exists()) {
+                task04Output.write("timestamp " + System.currentTimeMillis());
+            }
+
+            copy {
+                from arcPath
+                into fApkOut.parentFile
+
+                rename arcPath.name, fApkOut.name
+            }
+        }
+    }
+
+    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmUnsignApk${varName}"]
+    
+    //project.tasks.matching { task ->
+    //    task.name.startsWith('shdm')
+    //}*.group = 'SHDM'
+
+    println("-unsignApk")
 }
 
 /**
@@ -102,11 +376,13 @@ ext.exportAar = {
  * @param variant The variant in the module that is being processed.
  * @param outputFolder The name of the folder where the map files will be placed.
  */
-ext.exportProguardMapping = { /* BaseVariant */ variant, /* String */ outputFolder ->
+ext.exportApkProguardMapping = { /* Project */ project, /* BaseVariant */ variant, /* String */ outputFolder ->
     // Copy the proguard map files to the root directory under "Proguard"
     String varName = variant.name.capitalize()
+    //varName = varName.substring(0, 1).toUpperCase() + varName.substring(1);
 
     def srcDir = "${project.buildDir}/outputs/mapping/${variant.dirName}"
+//    def dstDir = "${project.rootProject.rootDir.absolutePath}/proguardMap/${project.name}/${outputFolder}"
 
     println("source: ${srcDir}")
     println("destination: ${outputFolder}")
@@ -114,23 +390,37 @@ ext.exportProguardMapping = { /* BaseVariant */ variant, /* String */ outputFold
     project.task("shdmExportMap${varName}", type: Copy) {
 		group "SHDM"
 		
-		if(project.tasks.findByPath("bundle${varName}") == null) {
-			println "Linking to task package${varName} instead..."
-			
-			dependsOn project.tasks["package${varName}"]
-			mustRunAfter project.tasks["package${varName}"]
-		} else {
-			println "Linking to task bundle${varName} instead..."
-			
-			dependsOn project.tasks["bundle${varName}"]
-			mustRunAfter project.tasks["bundle${varName}"]
-		}
+        // In Android Gradle plugin v2.1.0-alpha1, proguard${varName} has been replaced with transformClassesAndResourcesWithProguardFor${varName}
+        // transformClassesAndResourcesWithProguardFor${varName} may be changed again in the future, but package${varName} seems to be unchanging.
+        // So, we'll just use package${varName} instead as a "mustRunAfter" dependency for shdmExportMap${varName}.
+        try {
+            dependsOn project.tasks["proguard${varName}"]
+            mustRunAfter project.tasks["proguard${varName}"]
+        } catch(Exception e) {
+            println "Task proguard${varName} not found: ${e}"
+            
+            if(project.tasks.findByPath("bundle${varName}") == null) {
+                println "Linking to task package${varName} instead..."
+                
+                dependsOn project.tasks["package${varName}"]
+                mustRunAfter project.tasks["package${varName}"]
+            } else {
+                println "Linking to task bundle${varName} instead..."
+                
+                dependsOn project.tasks["bundle${varName}"]
+                mustRunAfter project.tasks["bundle${varName}"]
+            }
+        }
     
         from(srcDir)
         into(outputFolder)
     }
 
     project.tasks["assemble${varName}"].dependsOn project.tasks["shdmExportMap${varName}"]
+    
+    //project.tasks.matching { task ->
+    //    task.name.startsWith('shdm')
+    //}*.group = 'SHDM'
 }
 
 /**
@@ -153,7 +443,6 @@ ext.exportProguardMapping = { /* BaseVariant */ variant, /* String */ outputFold
  * <p>
  * The 4 tasks are then executed in the order specified above.
  *
- * @param variant The variant in the module that is being processed.
  * @param additionalSourceFiles Additional source files, which
  *                              may not be part of the project, but are referenced by the project.
  *                              Examples would be source codes of external libraries used by the project.
@@ -163,216 +452,416 @@ ext.exportProguardMapping = { /* BaseVariant */ variant, /* String */ outputFold
  *                                 so there's no need to include them in this classpath.  Only
  *                                 additional paths, like OMAPI, or any other external paths that the
  *                                 project may be using.
- * @param excludedFiles List of files to be excluded from the documentation
+ * @param project The project/module that is being processed.
+ * @param variant The variant in the module that is being processed.
+ * @param output The build variant in the module that is being processed.
  * @param javaDocTitle The title of the JavaDoc
  * @param javadocMemberLevel Indicates the member visibility to be used
  *                           (JavadocMemberLevel.PUBLIC, JavadocMemberLevel.PACKAGE,
  *                           JavadocMemberLevel.PROTECTED, JavadocMemberLevel.PRIVATE)
  * @param archiveName The name of the ZIP file containing the JavaDoc to be generated.
  * @param outputPath The directory where the zipped JavaDoc will be placed.
+ * @param android The Android plugin
  */
-ext.createJavaDoc = { /* BaseVariant */ variant,
-					  /* ConfigurableFileCollection */ additionalSourceFiles,
-					  /* ConfigurableFileCollection */ additionalClasspathFiles,
-                      /* List */ excludedFiles,
-                      /* String */ javaDocTitle,
-					  /* JavadocMemberLevel */ javadocMemberLevel,
-					  /* String */ archiveName,
-                      /* String */ outputPath ->
+ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /* ConfigurableFileCollection */ additionalClasspathFiles,
+                      /* Project */ project, /* BaseVariant */ variant, /* BaseVariantOutput */ output,
+                      /* String */ javaDocTitle, /* JavadocMemberLevel */ javadocMemberLevel, /* String */ archiveName,
+                      /* String */ outputPath, /* BaseExtension */ android ->
     def platformDir = getSdkPlatformFolder(android.sdkDirectory, android.compileSdkVersion)
     def varName = variant.name.capitalize()
 
     println "android.sdkDirectory type: " + android.sdkDirectory.class
     println "android.compileSdkVersion type: " + android.compileSdkVersion.class
-	
-	variant.outputs.all { output ->
-		// Modifies the generated R.java and Manifest.java to add "@y.exclude" yDoc JavaDoc tags to
-		// exclude them from the JavaDoc
-		def resSource = "${project.buildDir}/generated/source/r/${output.dirName}"
-		def resExcluded = "${project.buildDir}/r.excluded/source/r/${output.dirName}"
 
-		project.task("shdmExcludeRes00${varName}", type: Copy) {
-			dependsOn project.tasks["compile${varName}Sources"]
-			mustRunAfter project.tasks["compile${varName}Sources"]
+    // Modifies the generated R.java and Manifest.java to add "@y.exclude" yDoc JavaDoc tags to
+    // exclude them from the JavaDoc
+    def resSource = "${project.buildDir}/generated/source/r/${output.dirName}"
+    def resExcluded = "${project.buildDir}/r.excluded/source/r/${output.dirName}"
+
+    project.task("shdmExcludeRes00${varName}", type: Copy) {
+        dependsOn project.tasks["compile${varName}Sources"]
+        mustRunAfter project.tasks["compile${varName}Sources"]
+    
+        outputs.upToDateWhen {false}
+
+        from resSource
+        into resExcluded
+        include "**/Manifest.java"
+        include "**/R.java"
+
+        filter { String line ->
+            line.replaceAll("/\\*.*?\\*/", "/* */").
+                    replaceAll("(public)(\\s+)(\\S*)(\\s*)(final)(\\s+)",
+                            "/** @y.exclude */ \$1\$2\$3\$4\$5\$6")
+        }
+    }
+
+    project.task("shdmExcludeRes${varName}", type: Copy) {
+        dependsOn project.tasks["shdmExcludeRes00${varName}"]
+        mustRunAfter project.tasks["shdmExcludeRes00${varName}"]
+    
+        outputs.upToDateWhen {false}
+
+        from resExcluded
+        into resSource
+        include "**/Manifest.java"
+        include "**/R.java"
+    }
+
+    // Generates the JavaDoc with UML using yDoc doclet
+    project.task("shdmJavaDoc${varName}", type: Javadoc) {
+	    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+			def osBit = System.properties['sun.arch.data.model']
+			executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
+			println "OS: Windows ${osBit}-bit"
+			println "Using bundled javadoc.exe (JDK 7u80)..."
+			println "   \"$executable\""
+		}
 		
-			outputs.upToDateWhen {false}
+        dependsOn project.tasks["shdmExcludeRes${varName}"]
+        mustRunAfter project.tasks["shdmExcludeRes${varName}"]
+        
+        title = javaDocTitle
+        source = variant.javaCompile.source
 
-			from resSource
-			into resExcluded
-			include "**/Manifest.java"
-			include "**/R.java"
+        if(javadocMemberLevel == null) {
+            javadocMemberLevel = JavadocMemberLevel.PROTECTED
+        }
 
-			filter { String line ->
-				line.replaceAll("/\\*.*?\\*/", "/* */").
-						replaceAll("(public)(\\s+)(\\S*)(\\s*)(final)(\\s+)",
-								"/** @y.exclude */ \$1\$2\$3\$4\$5\$6")
-			}
+        if(additionalSourceFiles != null) {
+            source += additionalSourceFiles
+        }
+
+        ext.androidJar = "${platformDir}/android.jar"
+        ext.androidAnnotJar = "${android.sdkDirectory}/tools/support/annotations.jar"
+
+        classpath = files(variant.javaCompile.classpath.files,
+                ext.androidJar,
+                ext.androidAnnotJar)
+
+        if(additionalClasspathFiles != null) {
+            classpath += additionalClasspathFiles
+        }
+
+        options {
+            linksOffline("http://d.android.com/reference", "${android.sdkDirectory}/docs/reference")
+        }
+
+        destinationDir = new File("${project.buildDir}/javadoc/${archiveName}")
+        
+        File optionsFile = file("${project.rootProject.rootDir}/javadoc.options")
+        
+		if(!optionsFile.exists()) {
+			println "Using default JavaDoc options..."
+			optionsFile = file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
 		}
-
-		project.task("shdmExcludeRes${varName}", type: Copy) {
-			dependsOn project.tasks["shdmExcludeRes00${varName}"]
-			mustRunAfter project.tasks["shdmExcludeRes00${varName}"]
 		
-			outputs.upToDateWhen {false}
+		options.docletpath = files(configurations.yDoclet.files,
+				variant.javaCompile.classpath,
+				file("${project.buildDir}/intermediates/classes/${output.dirName}")).asType(List)
+		options.doclet = "ydoc.doclets.YStandard"
+		options.addStringOption("resourcepath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
+		options.addStringOption("filterpath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar")
+		options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
+		options.addStringOption("tag", "y.exclude")
+        options.optionFiles << optionsFile
+        options.memberLevel = javadocMemberLevel
+    }
 
-			from resExcluded
-			into resSource
-			include "**/Manifest.java"
-			include "**/R.java"
+    def javaDocSource = "${project.buildDir}/javadoc/${archiveName}"
+
+    // Adds syntax highlighting to Java source code samples in the generated JavaDoc.
+    def syntaxTheme = "Eclipse"
+    def syntaxifiedFiles = "${project.buildDir}/javadoc.syntaxified/${archiveName}"
+    def styleSheetFile = new File("${javaDocSource}/stylesheet.css")
+
+    project.task("shdmSyntaxify00${varName}", type: Copy) {
+        dependsOn project.tasks["shdmJavaDoc${varName}"]
+        mustRunAfter project.tasks["shdmJavaDoc${varName}"]
+        
+        outputs.upToDateWhen {false}
+
+        from "${project.rootProject.rootDir}/javaDoc/syntax-highlighter"
+        into javaDocSource
+    }
+
+    project.task("shdmSyntaxify01${varName}", type: Copy) {
+        dependsOn project.tasks["shdmSyntaxify00${varName}"]
+        mustRunAfter project.tasks["shdmSyntaxify00${varName}"]
+        
+        outputs.upToDateWhen {false}
+
+        from javaDocSource
+        into syntaxifiedFiles
+        include "**/*.html"
+
+        filter { String line ->
+            line.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
+                    "<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\$3/js/shBrushJava.js\"></script>").
+                    replaceAll("</html>",
+                            "<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
+        }
+    }
+
+    project.task("shdmSyntaxify02${varName}", type: Copy) {
+        dependsOn project.tasks["shdmSyntaxify01${varName}"]
+        mustRunAfter project.tasks["shdmSyntaxify01${varName}"]
+        
+        outputs.upToDateWhen {false}
+
+        from syntaxifiedFiles
+        into javaDocSource
+        include "**/*.html"
+
+        if(styleSheetFile.exists()) {
+            println "Stylesheet: ${styleSheetFile}"
+
+            def styleSheet = styleSheetFile.getText("UTF-8")
+            styleSheetFile.write("@import url(\"css/shCore.css\");\r\n" +
+                    "@import url(\"css/shTheme${syntaxTheme}.css\");\r\n\r\n${styleSheet}")
+        }
+    }
+
+    // Zips the generated JavaDoc and copies the zip file into the specified folder under the root
+    // "build" directory
+    def arcPath
+
+    project.task("shdmArchiveJavaDoc00${varName}", type: Zip) {
+        dependsOn project.tasks["shdmSyntaxify02${varName}"]
+        mustRunAfter project.tasks["shdmSyntaxify02${varName}"]
+        
+        outputs.upToDateWhen {false}
+
+        baseName archiveName
+        from javaDocSource
+        into "api"
+
+        arcPath = archivePath
+    }
+
+    project.task("shdmArchiveJavaDoc${varName}", type: Copy) {
+		group "SHDM"
+		
+        dependsOn project.tasks["shdmArchiveJavaDoc00${varName}"]
+        mustRunAfter project.tasks["shdmArchiveJavaDoc00${varName}"]
+        
+        outputs.upToDateWhen {false}
+
+        from arcPath
+        into "${outputPath}"
+
+        println "Original archive path: ${arcPath}"
+        println "Destination: ${outputPath}"
+    }
+
+    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmArchiveJavaDoc${varName}"]
+    
+    //project.tasks.matching { task ->
+    //    task.name.startsWith('shdm')
+    //}*.group = 'SHDM'
+}
+
+ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSourceFiles, /* ConfigurableFileCollection */ additionalClasspathFiles,
+                      /* List */ excludedFiles,
+                      /* Project */ project, /* BaseVariant */ variant, /* BaseVariantOutput */ output,
+                      /* String */ javaDocTitle, /* JavadocMemberLevel */ javadocMemberLevel, /* String */ archiveName,
+                      /* String */ outputPath, /* BaseExtension */ android ->
+    def platformDir = getSdkPlatformFolder(android.sdkDirectory, android.compileSdkVersion)
+    def varName = variant.name.capitalize()
+
+    println "android.sdkDirectory type: " + android.sdkDirectory.class
+    println "android.compileSdkVersion type: " + android.compileSdkVersion.class
+
+    // Modifies the generated R.java and Manifest.java to add "@y.exclude" yDoc JavaDoc tags to
+    // exclude them from the JavaDoc
+    def resSource = "${project.buildDir}/generated/source/r/${output.dirName}"
+    def resExcluded = "${project.buildDir}/r.excluded/source/r/${output.dirName}"
+
+    project.task("shdmExcludeRes00${varName}", type: Copy) {
+        dependsOn project.tasks["compile${varName}Sources"]
+        mustRunAfter project.tasks["compile${varName}Sources"]
+    
+        outputs.upToDateWhen {false}
+
+        from resSource
+        into resExcluded
+        include "**/Manifest.java"
+        include "**/R.java"
+
+        filter { String line ->
+            line.replaceAll("/\\*.*?\\*/", "/* */").
+                    replaceAll("(public)(\\s+)(\\S*)(\\s*)(final)(\\s+)",
+                            "/** @y.exclude */ \$1\$2\$3\$4\$5\$6")
+        }
+    }
+
+    project.task("shdmExcludeRes${varName}", type: Copy) {
+        dependsOn project.tasks["shdmExcludeRes00${varName}"]
+        mustRunAfter project.tasks["shdmExcludeRes00${varName}"]
+    
+        outputs.upToDateWhen {false}
+
+        from resExcluded
+        into resSource
+        include "**/Manifest.java"
+        include "**/R.java"
+    }
+
+    // Generates the JavaDoc with UML using yDoc doclet
+    project.task("shdmJavaDoc${varName}", type: Javadoc) {
+	    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+			def osBit = System.properties['sun.arch.data.model']
+			executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
+			println "OS: Windows ${osBit}-bit"
+			println "Using bundled javadoc.exe (JDK 7u80)..."
+			println "   \"$executable\""
 		}
-
-		// Generates the JavaDoc with UML using yDoc doclet
-		project.task("shdmJavaDoc${varName}", type: Javadoc) {
-			if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-				def osBit = System.properties['sun.arch.data.model']
-				executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
-				println "OS: Windows ${osBit}-bit"
-				println "Using bundled javadoc.exe (JDK 7u80)..."
-				println "   \"$executable\""
-			}
-			
-			dependsOn project.tasks["shdmExcludeRes${varName}"]
-			mustRunAfter project.tasks["shdmExcludeRes${varName}"]
-			
-			if (excludedFiles != null) {
-				exclude(excludedFiles)
-			}
-			
-			title = javaDocTitle
-			source = variant.javaCompile.source
-
-			if(javadocMemberLevel == null) {
-				javadocMemberLevel = JavadocMemberLevel.PROTECTED
-			}
-
-			if(additionalSourceFiles != null) {
-				source += additionalSourceFiles
-			}
-
-			ext.androidJar = "${platformDir}/android.jar"
-			ext.androidAnnotJar = "${android.sdkDirectory}/tools/support/annotations.jar"
-
-			classpath = files(variant.javaCompile.classpath.files,
-					ext.androidJar,
-					ext.androidAnnotJar)
-
-			if(additionalClasspathFiles != null) {
-				classpath += additionalClasspathFiles
-			}
-
-			options {
-				linksOffline("http://d.android.com/reference", "${android.sdkDirectory}/docs/reference")
-			}
-
-			destinationDir = new File("${project.buildDir}/javadoc/${archiveName}")
-			
-			File optionsFile = file("${project.rootProject.rootDir}/javadoc.options")
-			
-			if(!optionsFile.exists()) {
-				println "Using default JavaDoc options..."
-				optionsFile = file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
-			}
-			
-			options.docletpath = files(configurations.yDoclet.files,
-					variant.javaCompile.classpath,
-					file("${project.buildDir}/intermediates/classes/${output.dirName}")).asType(List)
-			options.doclet = "ydoc.doclets.YStandard"
-			options.addStringOption("resourcepath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
-			options.addStringOption("filterpath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar")
-			options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
-			options.addStringOption("tag", "y.exclude")
-			options.optionFiles << optionsFile
-			options.memberLevel = javadocMemberLevel
+		
+        dependsOn project.tasks["shdmExcludeRes${varName}"]
+        mustRunAfter project.tasks["shdmExcludeRes${varName}"]
+		
+		if (excludedFiles != null) {
+		    exclude(excludedFiles)
 		}
+        
+        title = javaDocTitle
+        source = variant.javaCompile.source
 
-		def javaDocSource = "${project.buildDir}/javadoc/${archiveName}"
+        if(javadocMemberLevel == null) {
+            javadocMemberLevel = JavadocMemberLevel.PROTECTED
+        }
 
-		// Adds syntax highlighting to Java source code samples in the generated JavaDoc.
-		def syntaxTheme = "Eclipse"
-		def syntaxifiedFiles = "${project.buildDir}/javadoc.syntaxified/${archiveName}"
-		def styleSheetFile = new File("${javaDocSource}/stylesheet.css")
+        if(additionalSourceFiles != null) {
+            source += additionalSourceFiles
+        }
 
-		project.task("shdmSyntaxify00${varName}", type: Copy) {
-			dependsOn project.tasks["shdmJavaDoc${varName}"]
-			mustRunAfter project.tasks["shdmJavaDoc${varName}"]
-			
-			outputs.upToDateWhen {false}
+        ext.androidJar = "${platformDir}/android.jar"
+        ext.androidAnnotJar = "${android.sdkDirectory}/tools/support/annotations.jar"
 
-			from "${project.rootProject.rootDir}/javaDoc/syntax-highlighter"
-			into javaDocSource
+        classpath = files(variant.javaCompile.classpath.files,
+                ext.androidJar,
+                ext.androidAnnotJar)
+
+        if(additionalClasspathFiles != null) {
+            classpath += additionalClasspathFiles
+        }
+
+        options {
+            linksOffline("http://d.android.com/reference", "${android.sdkDirectory}/docs/reference")
+        }
+
+        destinationDir = new File("${project.buildDir}/javadoc/${archiveName}")
+        
+        File optionsFile = file("${project.rootProject.rootDir}/javadoc.options")
+        
+		if(!optionsFile.exists()) {
+			println "Using default JavaDoc options..."
+			optionsFile = file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
 		}
+		
+		options.docletpath = files(configurations.yDoclet.files,
+				variant.javaCompile.classpath,
+				file("${project.buildDir}/intermediates/classes/${output.dirName}")).asType(List)
+		options.doclet = "ydoc.doclets.YStandard"
+		options.addStringOption("resourcepath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
+		options.addStringOption("filterpath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar")
+		options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
+		options.addStringOption("tag", "y.exclude")
+        options.optionFiles << optionsFile
+        options.memberLevel = javadocMemberLevel
+    }
 
-		project.task("shdmSyntaxify01${varName}", type: Copy) {
-			dependsOn project.tasks["shdmSyntaxify00${varName}"]
-			mustRunAfter project.tasks["shdmSyntaxify00${varName}"]
-			
-			outputs.upToDateWhen {false}
+    def javaDocSource = "${project.buildDir}/javadoc/${archiveName}"
 
-			from javaDocSource
-			into syntaxifiedFiles
-			include "**/*.html"
+    // Adds syntax highlighting to Java source code samples in the generated JavaDoc.
+    def syntaxTheme = "Eclipse"
+    def syntaxifiedFiles = "${project.buildDir}/javadoc.syntaxified/${archiveName}"
+    def styleSheetFile = new File("${javaDocSource}/stylesheet.css")
 
-			filter { String line ->
-				line.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
-						"<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\$3/js/shBrushJava.js\"></script>").
-						replaceAll("</html>",
-								"<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
-			}
-		}
+    project.task("shdmSyntaxify00${varName}", type: Copy) {
+        dependsOn project.tasks["shdmJavaDoc${varName}"]
+        mustRunAfter project.tasks["shdmJavaDoc${varName}"]
+        
+        outputs.upToDateWhen {false}
 
-		project.task("shdmSyntaxify02${varName}", type: Copy) {
-			dependsOn project.tasks["shdmSyntaxify01${varName}"]
-			mustRunAfter project.tasks["shdmSyntaxify01${varName}"]
-			
-			outputs.upToDateWhen {false}
+        from "${project.rootProject.rootDir}/javaDoc/syntax-highlighter"
+        into javaDocSource
+    }
 
-			from syntaxifiedFiles
-			into javaDocSource
-			include "**/*.html"
+    project.task("shdmSyntaxify01${varName}", type: Copy) {
+        dependsOn project.tasks["shdmSyntaxify00${varName}"]
+        mustRunAfter project.tasks["shdmSyntaxify00${varName}"]
+        
+        outputs.upToDateWhen {false}
 
-			if(styleSheetFile.exists()) {
-				println "Stylesheet: ${styleSheetFile}"
+        from javaDocSource
+        into syntaxifiedFiles
+        include "**/*.html"
 
-				def styleSheet = styleSheetFile.getText("UTF-8")
-				styleSheetFile.write("@import url(\"css/shCore.css\");\r\n" +
-						"@import url(\"css/shTheme${syntaxTheme}.css\");\r\n\r\n${styleSheet}")
-			}
-		}
+        filter { String line ->
+            line.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
+                    "<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\$3/js/shBrushJava.js\"></script>").
+                    replaceAll("</html>",
+                            "<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
+        }
+    }
 
-		// Zips the generated JavaDoc and copies the zip file into the specified folder under the root
-		// "build" directory
-		def arcPath
+    project.task("shdmSyntaxify02${varName}", type: Copy) {
+        dependsOn project.tasks["shdmSyntaxify01${varName}"]
+        mustRunAfter project.tasks["shdmSyntaxify01${varName}"]
+        
+        outputs.upToDateWhen {false}
 
-		project.task("shdmArchiveJavaDoc00${varName}", type: Zip) {
-			dependsOn project.tasks["shdmSyntaxify02${varName}"]
-			mustRunAfter project.tasks["shdmSyntaxify02${varName}"]
-			
-			outputs.upToDateWhen {false}
+        from syntaxifiedFiles
+        into javaDocSource
+        include "**/*.html"
 
-			baseName archiveName
-			from javaDocSource
-			into "api"
+        if(styleSheetFile.exists()) {
+            println "Stylesheet: ${styleSheetFile}"
 
-			arcPath = archivePath
-		}
+            def styleSheet = styleSheetFile.getText("UTF-8")
+            styleSheetFile.write("@import url(\"css/shCore.css\");\r\n" +
+                    "@import url(\"css/shTheme${syntaxTheme}.css\");\r\n\r\n${styleSheet}")
+        }
+    }
 
-		project.task("shdmArchiveJavaDoc${varName}", type: Copy) {
-			group "SHDM"
-			
-			dependsOn project.tasks["shdmArchiveJavaDoc00${varName}"]
-			mustRunAfter project.tasks["shdmArchiveJavaDoc00${varName}"]
-			
-			outputs.upToDateWhen {false}
+    // Zips the generated JavaDoc and copies the zip file into the specified folder under the root
+    // "build" directory
+    def arcPath
 
-			from arcPath
-			into "${outputPath}"
+    project.task("shdmArchiveJavaDoc00${varName}", type: Zip) {
+        dependsOn project.tasks["shdmSyntaxify02${varName}"]
+        mustRunAfter project.tasks["shdmSyntaxify02${varName}"]
+        
+        outputs.upToDateWhen {false}
 
-			println "Original archive path: ${arcPath}"
-			println "Destination: ${outputPath}"
-		}
+        baseName archiveName
+        from javaDocSource
+        into "api"
 
-		project.tasks["assemble${varName}"].dependsOn project.tasks["shdmArchiveJavaDoc${varName}"]
-	}
+        arcPath = archivePath
+    }
+
+    project.task("shdmArchiveJavaDoc${varName}", type: Copy) {
+		group "SHDM"
+		
+        dependsOn project.tasks["shdmArchiveJavaDoc00${varName}"]
+        mustRunAfter project.tasks["shdmArchiveJavaDoc00${varName}"]
+        
+        outputs.upToDateWhen {false}
+
+        from arcPath
+        into "${outputPath}"
+
+        println "Original archive path: ${arcPath}"
+        println "Destination: ${outputPath}"
+    }
+
+    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmArchiveJavaDoc${varName}"]
+    
+    //project.tasks.matching { task ->
+    //    task.name.startsWith('shdm')
+    //}*.group = 'SHDM'
 }
 
 /**
@@ -985,19 +1474,6 @@ dependencies {
     yDoclet fileTree("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
 }
 
-def getAndroidGradlePluginVersion() {
-    String version = "";
-
-    // look for gradle-x.y.z.jar
-    def gradleRegexp = /^gradle-([\d.]+).*\.jar/
-    rootProject.buildscript.configurations.classpath.each { depFile ->
-        if (depFile.name.matches(gradleRegexp)) {
-            version = (depFile.name =~ gradleRegexp)[0][1]
-        }
-    }
-
-    return version
-}
 // -------------------------------------------------------------------------------------------------
 // END: CUSTOM SCRIPTS
 // -------------------------------------------------------------------------------------------------

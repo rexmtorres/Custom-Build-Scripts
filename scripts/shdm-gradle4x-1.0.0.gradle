@@ -24,7 +24,8 @@
 // -------------------------------------------------------------------------------------------------
 import org.apache.tools.ant.taskdefs.condition.Os
 
-def COMMON_TOOLS = "bin"
+def cdnRoot = "https://gitcdn.link/repo/rexmtorres/Custom-Build-Scripts/master"
+def COMMON_TOOLS = "${cdnRoot}/bin"
 
 configurations {
     yDoclet
