@@ -468,14 +468,19 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
                     optionsFile = binFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
                 }
                 
-                options.docletpath = files(configurations.yDoclet.files,
-                        variant.javaCompile.classpath,
+                // options.docletpath = files(configurations.yDoclet.files,
+                //         variant.javaCompile.classpath,
+                //         file("${project.buildDir}/intermediates/classes/${variant.name}")).asType(List)
+                // options.doclet = "ydoc.doclets.YStandard"
+                // options.addStringOption("resourcepath", binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources").absolutePath)
+                // options.addStringOption("filterpath", binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar").absolutePath)
+                // options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
+                // options.addStringOption("tag", "y.exclude")
+                // options.optionFiles << optionsFile
+                // options.memberLevel = javadocMemberLevel
+                
+                options.docletpath = files(variant.javaCompile.classpath,
                         file("${project.buildDir}/intermediates/classes/${variant.name}")).asType(List)
-                options.doclet = "ydoc.doclets.YStandard"
-                options.addStringOption("resourcepath", binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources").absolutePath)
-                options.addStringOption("filterpath", binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar").absolutePath)
-                options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
-                options.addStringOption("tag", "y.exclude")
                 options.optionFiles << optionsFile
                 options.memberLevel = javadocMemberLevel
             }
