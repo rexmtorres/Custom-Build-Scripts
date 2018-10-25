@@ -19,6 +19,15 @@
  * Original author    : Rex M. Torres
  * Creation date      : 07 March 2016
  */
+
+def uriToFile(uri) {
+    def fileURL = new java.net.URL(uri)
+    def fileCopy = new java.io.File(fileURL.toURI())
+
+    println "$uri => ${fileCopy.absolutePath}"
+    return fileCopy
+}
+
 // -------------------------------------------------------------------------------------------------
 // START: CUSTOM SCRIPTS
 // -------------------------------------------------------------------------------------------------
@@ -426,15 +435,15 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
                 
                 if(!optionsFile.exists()) {
                     println "Using default JavaDoc options..."
-                    optionsFile = "${COMMON_TOOLS}/javaDoc/javadoc_default.options" // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+                    optionsFile = uriToFile("${COMMON_TOOLS}/javaDoc/javadoc_default.options") // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
                 }
                 
                 options.docletpath = files(configurations.yDoclet.files,
                         variant.javaCompile.classpath,
                         file("${project.buildDir}/intermediates/classes/${variant.name}")).asType(List)
                 options.doclet = "ydoc.doclets.YStandard"
-                options.addStringOption("resourcepath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
-                options.addStringOption("filterpath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar")
+                options.addStringOption("resourcepath", uriToFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources").absolutePath)
+                options.addStringOption("filterpath", uriToFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar").absolutePath)
                 options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
                 options.addStringOption("tag", "y.exclude")
                 options.optionFiles << optionsFile
