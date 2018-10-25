@@ -549,7 +549,7 @@ ext.calculateLinesOfCode = { /* Project */ project, /* BaseVariant */ variant, /
         //outputScFile = new File(outputScFile, "${outFileUnsigned}.csv")
         outputScFile = new File(outputScFile, outputFile)
 
-        classpath = files("${COMMON_TOOLS}/stepCounter/stepcounter.jar")
+        classpath = files(binFile("${COMMON_TOOLS}/stepCounter/stepcounter.jar"))
         main = "tk.stepcounter.Main"
         args = [
                 "-format=csv",
@@ -1020,8 +1020,8 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
 }
 
 dependencies {
-    yDoclet files("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar")
-    yDoclet fileTree("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
+    yDoclet files(binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar"))
+    yDoclet fileTree(binFile("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources"))
 }
 
 def getAndroidGradlePluginVersion() {
