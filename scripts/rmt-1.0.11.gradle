@@ -553,7 +553,7 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         
 		if(!optionsFile.exists()) {
 			println "Using default JavaDoc options..."
-			optionsFile = file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+			optionsFile = "${COMMON_TOOLS}/javaDoc/javadoc_default.options" // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
 		}
 		
 		options.docletpath = files(configurations.yDoclet.files,
@@ -756,7 +756,7 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         
 		if(!optionsFile.exists()) {
 			println "Using default JavaDoc options..."
-			optionsFile = file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+			optionsFile = "${COMMON_TOOLS}/javaDoc/javadoc_default.options" // file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
 		}
 		
 		options.docletpath = files(configurations.yDoclet.files,
