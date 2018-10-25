@@ -1,0 +1,34 @@
+// This is simply a wrapper for the latest version of the helper Gradle scripts.
+
+def pluginVersion = getAndroidGradlePluginVersion()
+def gradleVersion = project.getGradle().getGradleVersion()
+
+println "Gradle Version: " + gradleVersion
+println "Android Gradle Plugin Version: " + pluginVersion
+
+def latestVersion = gradleVersion.matches(/^4\.[456789]\d*\.*\d*$/) ? "gradle4x-1.0.0" :    // Use "gradle4x-1.0.0" if Gradle version is 4.4+.
+    (pluginVersion.matches(/^3\.\d+\.\d+$/) ? "gradle3x-1.0.0" :                            // Else, use "gradle3x-1.0.0" if Android Gradle Plugin version is 3.0+ but Gradle version is below 4.4.
+    "1.0.11")                                                                               // Else, use "1.0.11".
+
+println "\n"
+println "========================================================================================="
+println "Mobile SHD Gradle Helper Scripts"
+println "Version: ${latestVersion}"
+println "========================================================================================="
+println "\n"
+
+apply from: "shdm-${latestVersion}.gradle"
+
+def getAndroidGradlePluginVersion() {
+    String plugVer = ""
+
+    def regExp = /^gradle-([\d.]+)\.jar$/
+
+    rootProject.buildscript.configurations.classpath.each { depFile ->
+        if (depFile.name.matches(regExp)) {
+            plugVer = (depFile.name =~ regExp)[0][1]
+        }
+    }
+
+    return plugVer
+}

@@ -1,0 +1,9 @@
+-generic
+-umlautogen
+-tag y.uml
+-tag y.precondition
+-tag y.postcondition
+-tag y.complexity
+-tag param
+-tag return
+-tag see

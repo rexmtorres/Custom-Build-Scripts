@@ -1,0 +1,1002 @@
+/**
+ * Helper functions to help set up Gradle tasks for commonly used procedures.  To use this in your
+ * AS projects, import this script into your module by adding:
+ *     apply from: '<absolute_path_to_script>/shdm-<version>.gradle
+ *
+ * Example:
+ *     apply from: 'scripts/shdm-1.0.0.gradle'
+ *
+ * This is specifically for Android Gradle Plugin v3.x and up
+ 
+ * This will make the following functions available:
+ *     + exportAar - Exports the AAR and extracts the JAR (inside the AAR) into the specified
+ *                   location renaming the files to the specified name.
+ *     + exportApk - TODO: To be implemented
+ *     + exportProguardMapping - Copies the Proguard map files into a specified folder.
+ *     + createJavaDoc - Generates JavaDoc w/ UML diagrams from the specified source files.
+ *     + calculateLinesOfCode - Generates step count of the source code using Amateras StepCounter.
+ * 
+ * Original author    : Rex M. Torres
+ * Creation date      : 07 March 2016
+ */
+// -------------------------------------------------------------------------------------------------
+// START: CUSTOM SCRIPTS
+// -------------------------------------------------------------------------------------------------
+import org.apache.tools.ant.taskdefs.condition.Os
+
+def COMMON_TOOLS = "bin"
+
+configurations {
+    yDoclet
+}
+
+// TODO: implement exportApk w/ unsign feature
+//    // for library projects, use "compileXXXSources".  for apk projects, use "packageXXX"
+//    //tasks["export{variantName.capitalize()}Aar"].mustRunAfter tasks["package${variantName.capitalize()}"]
+ext.exportAar = {
+        /* LibraryVariant */ variant,
+        /* String */ destFolder,
+        /* String */ baseFileName ->
+
+    def fileExt = "aar"
+
+    def flavorName = variant.flavorName
+    def buildTypeName = variant.buildType.name
+    def variantName = variant.name
+
+    println("flavorName: ${flavorName}")
+    println("buildTypeName: ${buildTypeName}")
+    println("variantName: ${variantName}")
+
+    variant.outputs.all {
+        def variantPath = ((flavorName != null) && !flavorName.isEmpty()) ?
+                "${flavorName}/${buildTypeName}" : buildTypeName
+
+        def fileName = "${variantPath}/${baseFileName}.${fileExt}"
+        def buildFile = file("${project.buildDir}/outputs/${fileExt}/$fileName")
+
+        // This is the recommended way to rename APKs in gradle 3.0+ but,
+        // this should only be used for renaming the APK file itself, not
+        // moving it to another location outside the build folder.
+        outputFileName = fileName
+
+        // We now need to create a task to move/copy the APK/AAR to a new location.
+        task("shdmExport${variantName.capitalize()}${fileExt.capitalize()}") {
+			group "SHDM"
+			
+            inputs.file(buildFile)
+            outputs.file("${destFolder}/${baseFileName}.${fileExt}")
+            outputs.upToDateWhen { false }
+
+            doLast {
+                copy {
+                    from(buildFile)
+                    into(destFolder)
+                }
+
+				copy {
+					from zipTree(buildFile)
+					into destFolder
+					include "*.jar"
+					rename "classes.jar", "${baseFileName}.jar"
+				}
+            }
+        }
+    }
+
+    tasks["shdmExport${variantName.capitalize()}${fileExt.capitalize()}"].mustRunAfter tasks["compile${variantName.capitalize()}Sources"]
+    tasks["assemble${variantName.capitalize()}"].dependsOn tasks["shdmExport${variantName.capitalize()}${fileExt.capitalize()}"]
+}
+
+/**
+ * <p>
+ * Creates an "exportMap${variant}" task, for the specified variant in the specified project/module,
+ * which will be executed after the "proguard${variant}" task.
+ *
+ * <p>
+ * The "exportMap${variant}" task will attempt to copy the Proguard map files, from the module's
+ * "build" folder, into the "Proguard" folder under the root project.
+ *
+ * @param project The project/module that is being processed.
+ * @param variant The variant in the module that is being processed.
+ * @param outputFolder The name of the folder where the map files will be placed.
+ */
+ext.exportProguardMapping = { /* BaseVariant */ variant, /* String */ outputFolder ->
+    // Copy the proguard map files to the root directory under "Proguard"
+    String varName = variant.name.capitalize()
+
+    def srcDir = "${project.buildDir}/outputs/mapping/${variant.dirName}"
+
+    println("source: ${srcDir}")
+    println("destination: ${outputFolder}")
+
+    project.task("shdmExportMap${varName}", type: Copy) {
+		group "SHDM"
+		
+		if(project.tasks.findByPath("bundle${varName}") == null) {
+			println "Linking to task package${varName} instead..."
+			
+			dependsOn project.tasks["package${varName}"]
+			mustRunAfter project.tasks["package${varName}"]
+		} else {
+			println "Linking to task bundle${varName} instead..."
+			
+			dependsOn project.tasks["bundle${varName}"]
+			mustRunAfter project.tasks["bundle${varName}"]
+		}
+    
+        from(srcDir)
+        into(outputFolder)
+    }
+
+    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmExportMap${varName}"]
+}
+
+/**
+ * <p>
+ * Generates the JavaDoc documentation of the specified variant of the specified project.
+ *
+ * <p>
+ * Creates 4 tasks for the specified variant:
+ * <ol>
+ *     <li>shdmExcludeRes${variant} - Modifies R.java and Manifest.java to add "@y.exclude" yDoc
+ *        JavaDoc tags to exclude them from the JavaDoc
+ *     <li>shdmJavaDoc${variant} - Generates the JavaDoc with UML diagrams c/o the yDoc doclet
+ *         (http://www.yworks.com/en/products_ydoc.html)
+ *     <li>shdmSyntaxify${variant} - Beautifies source code samples in the JavaDoc by applying
+ *         syntax highlighting using SyntaxHiglighter (http://alexgorbatchev.com/SyntaxHighlighter/)
+ *     <li>shdmArchiveJavaDoc${variant} - Packages the generated JavaDoc into a ZIP file and puts
+ *         the ZIP file into the root folder under "build/JavaDocs".
+ * </ol>
+ *
+ * <p>
+ * The 4 tasks are then executed in the order specified above.
+ *
+ * @param variant The variant in the module that is being processed.
+ * @param additionalSourceFiles Additional source files, which
+ *                              may not be part of the project, but are referenced by the project.
+ *                              Examples would be source codes of external libraries used by the project.
+ * @param additionalClasspathFiles Additional files to be included
+ *                                 in the classpath.  The variant's classpath, as well as the
+ *                                 Android classpath are already automatically added by this script
+ *                                 so there's no need to include them in this classpath.  Only
+ *                                 additional paths, like OMAPI, or any other external paths that the
+ *                                 project may be using.
+ * @param excludedFiles List of files to be excluded from the documentation
+ * @param javaDocTitle The title of the JavaDoc
+ * @param javadocMemberLevel Indicates the member visibility to be used
+ *                           (JavadocMemberLevel.PUBLIC, JavadocMemberLevel.PACKAGE,
+ *                           JavadocMemberLevel.PROTECTED, JavadocMemberLevel.PRIVATE)
+ * @param archiveName The name of the ZIP file containing the JavaDoc to be generated.
+ * @param outputPath The directory where the zipped JavaDoc will be placed.
+ */
+ext.createJavaDoc = { /* BaseVariant */ variant,
+					  /* ConfigurableFileCollection */ additionalSourceFiles,
+					  /* ConfigurableFileCollection */ additionalClasspathFiles,
+                      /* List */ excludedFiles,
+                      /* String */ javaDocTitle,
+					  /* JavadocMemberLevel */ javadocMemberLevel,
+					  /* String */ archiveName,
+                      /* String */ outputPath ->
+    def platformDir = getSdkPlatformFolder(android.sdkDirectory, android.compileSdkVersion)
+    def varName = variant.name.capitalize()
+
+    println "android.sdkDirectory type: " + android.sdkDirectory.class
+    println "android.compileSdkVersion type: " + android.compileSdkVersion.class
+	
+	variant.outputs.all { output ->
+		// Modifies the generated R.java and Manifest.java to add "@y.exclude" yDoc JavaDoc tags to
+		// exclude them from the JavaDoc
+		def resSource = "${project.buildDir}/generated/source/r/${output.dirName}"
+		def resExcluded = "${project.buildDir}/r.excluded/source/r/${output.dirName}"
+
+		project.task("shdmExcludeRes00${varName}", type: Copy) {
+			dependsOn project.tasks["compile${varName}Sources"]
+			mustRunAfter project.tasks["compile${varName}Sources"]
+		
+			outputs.upToDateWhen {false}
+
+			from resSource
+			into resExcluded
+			include "**/Manifest.java"
+			include "**/R.java"
+
+			filter { String line ->
+				line.replaceAll("/\\*.*?\\*/", "/* */").
+						replaceAll("(public)(\\s+)(\\S*)(\\s*)(final)(\\s+)",
+								"/** @y.exclude */ \$1\$2\$3\$4\$5\$6")
+			}
+		}
+
+		project.task("shdmExcludeRes${varName}", type: Copy) {
+			dependsOn project.tasks["shdmExcludeRes00${varName}"]
+			mustRunAfter project.tasks["shdmExcludeRes00${varName}"]
+		
+			outputs.upToDateWhen {false}
+
+			from resExcluded
+			into resSource
+			include "**/Manifest.java"
+			include "**/R.java"
+		}
+
+		// Generates the JavaDoc with UML using yDoc doclet
+		project.task("shdmJavaDoc${varName}", type: Javadoc) {
+			if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+				def osBit = System.properties['sun.arch.data.model']
+				executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
+				println "OS: Windows ${osBit}-bit"
+				println "Using bundled javadoc.exe (JDK 7u80)..."
+				println "   \"$executable\""
+			}
+			
+			dependsOn project.tasks["shdmExcludeRes${varName}"]
+			mustRunAfter project.tasks["shdmExcludeRes${varName}"]
+			
+			if (excludedFiles != null) {
+				exclude(excludedFiles)
+			}
+			
+			title = javaDocTitle
+			source = variant.javaCompile.source
+
+			if(javadocMemberLevel == null) {
+				javadocMemberLevel = JavadocMemberLevel.PROTECTED
+			}
+
+			if(additionalSourceFiles != null) {
+				source += additionalSourceFiles
+			}
+
+			ext.androidJar = "${platformDir}/android.jar"
+			ext.androidAnnotJar = "${android.sdkDirectory}/tools/support/annotations.jar"
+
+			classpath = files(variant.javaCompile.classpath.files,
+					ext.androidJar,
+					ext.androidAnnotJar)
+
+			if(additionalClasspathFiles != null) {
+				classpath += additionalClasspathFiles
+			}
+
+			options {
+				linksOffline("http://d.android.com/reference", "${android.sdkDirectory}/docs/reference")
+			}
+
+			destinationDir = new File("${project.buildDir}/javadoc/${archiveName}")
+			
+			File optionsFile = file("${project.rootProject.rootDir}/javadoc.options")
+			
+			if(!optionsFile.exists()) {
+				println "Using default JavaDoc options..."
+				optionsFile = file("${COMMON_TOOLS}/javaDoc/javadoc_default.options")
+			}
+			
+			options.docletpath = files(configurations.yDoclet.files,
+					variant.javaCompile.classpath,
+					file("${project.buildDir}/intermediates/classes/${output.dirName}")).asType(List)
+			options.doclet = "ydoc.doclets.YStandard"
+			options.addStringOption("resourcepath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
+			options.addStringOption("filterpath", "${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar")
+			options.addStringOption("filter", "ydoc.filters.ExcludeFilter")
+			options.addStringOption("tag", "y.exclude")
+			options.optionFiles << optionsFile
+			options.memberLevel = javadocMemberLevel
+		}
+
+		def javaDocSource = "${project.buildDir}/javadoc/${archiveName}"
+
+		// Adds syntax highlighting to Java source code samples in the generated JavaDoc.
+		def syntaxTheme = "Eclipse"
+		def syntaxifiedFiles = "${project.buildDir}/javadoc.syntaxified/${archiveName}"
+		def styleSheetFile = new File("${javaDocSource}/stylesheet.css")
+
+		project.task("shdmSyntaxify00${varName}", type: Copy) {
+			dependsOn project.tasks["shdmJavaDoc${varName}"]
+			mustRunAfter project.tasks["shdmJavaDoc${varName}"]
+			
+			outputs.upToDateWhen {false}
+
+			from "${project.rootProject.rootDir}/javaDoc/syntax-highlighter"
+			into javaDocSource
+		}
+
+		project.task("shdmSyntaxify01${varName}", type: Copy) {
+			dependsOn project.tasks["shdmSyntaxify00${varName}"]
+			mustRunAfter project.tasks["shdmSyntaxify00${varName}"]
+			
+			outputs.upToDateWhen {false}
+
+			from javaDocSource
+			into syntaxifiedFiles
+			include "**/*.html"
+
+			filter { String line ->
+				line.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
+						"<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\$3/js/shBrushJava.js\"></script>").
+						replaceAll("</html>",
+								"<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
+			}
+		}
+
+		project.task("shdmSyntaxify02${varName}", type: Copy) {
+			dependsOn project.tasks["shdmSyntaxify01${varName}"]
+			mustRunAfter project.tasks["shdmSyntaxify01${varName}"]
+			
+			outputs.upToDateWhen {false}
+
+			from syntaxifiedFiles
+			into javaDocSource
+			include "**/*.html"
+
+			if(styleSheetFile.exists()) {
+				println "Stylesheet: ${styleSheetFile}"
+
+				def styleSheet = styleSheetFile.getText("UTF-8")
+				styleSheetFile.write("@import url(\"css/shCore.css\");\r\n" +
+						"@import url(\"css/shTheme${syntaxTheme}.css\");\r\n\r\n${styleSheet}")
+			}
+		}
+
+		// Zips the generated JavaDoc and copies the zip file into the specified folder under the root
+		// "build" directory
+		def arcPath
+
+		project.task("shdmArchiveJavaDoc00${varName}", type: Zip) {
+			dependsOn project.tasks["shdmSyntaxify02${varName}"]
+			mustRunAfter project.tasks["shdmSyntaxify02${varName}"]
+			
+			outputs.upToDateWhen {false}
+
+			baseName archiveName
+			from javaDocSource
+			into "api"
+
+			arcPath = archivePath
+		}
+
+		project.task("shdmArchiveJavaDoc${varName}", type: Copy) {
+			group "SHDM"
+			
+			dependsOn project.tasks["shdmArchiveJavaDoc00${varName}"]
+			mustRunAfter project.tasks["shdmArchiveJavaDoc00${varName}"]
+			
+			outputs.upToDateWhen {false}
+
+			from arcPath
+			into "${outputPath}"
+
+			println "Original archive path: ${arcPath}"
+			println "Destination: ${outputPath}"
+		}
+
+		project.tasks["assemble${varName}"].dependsOn project.tasks["shdmArchiveJavaDoc${varName}"]
+	}
+}
+
+/**
+ *
+ * @param project The project/module that is being processed.
+ * @param variant The variant in the module that is being processed.
+ * @param output The build variant in the module that is being processed.
+ * @param outputDir The path to where the step counter file will be saved.
+ * @param outputFile The name of the step counter file to be saved.
+ */
+ext.calculateLinesOfCode = { /* Project */ project, /* BaseVariant */ variant, /* BaseVariantOutput */ output, /* String */ outputDir, /* String */ outputFile ->
+    println("+calculateLinesOfCode(\n" +
+            "\tproject: [${project}],\n" +
+            "\tvariant: [${variant}],\n" +
+            "\toutput: [${output}])")
+
+    def varName = variant.name.capitalize()
+
+    println "\tproject.name: ${project.name}"
+    println "\tproject.buildDir: ${project.buildDir}"
+    println "\toutput.dirName: ${output.dirName}"
+    println "\tvariant.sourceSets: ${variant.sourceSets}"
+
+    def srcSet = files()
+
+    // START: Retrieve all source files of the particular variant
+    variant.sourceSets.each { src ->
+        src.java.srcDirs.each { jSrc ->
+            println "\t\tjava: ${jSrc.absolutePath}"
+
+            if (jSrc.parentFile.exists() &&
+                    (jSrc.absolutePath.endsWith("\\java") ||
+                            jSrc.absolutePath.endsWith("/java"))) {
+                println "\t\tadding java: ${jSrc.parentFile.absolutePath}"
+                srcSet = srcSet + files(jSrc.parentFile)
+            }
+        }
+    }
+    // END: Retrieve all source files of the particular variant
+
+    // START: Retrieve all generated source files of the particular variant
+    File genFile = new File("${project.buildDir}/generated/source/aidl/${output.dirName}")
+
+    if (genFile.exists()) {
+        println "\t\tadding aidl: ${genFile.absolutePath}"
+        srcSet = srcSet + files(genFile)
+    }
+
+    genFile = new File("${project.buildDir}/generated/source/buildConfig/${output.dirName}")
+
+    if (genFile.exists()) {
+        println "\t\tadding buildConfig: ${genFile.absolutePath}"
+        srcSet = srcSet + files(genFile)
+    }
+
+    genFile = new File("${project.buildDir}/generated/source/r/${output.dirName}")
+
+    if (genFile.exists()) {
+        println "\t\tadding r and manifest: ${genFile.absolutePath}"
+        srcSet = srcSet + files(genFile)
+    }
+    // END: Retrieve all generated source files of the particular variant
+
+    srcSet.each { file ->
+        println "\tfile: ${file.absolutePath}"
+    }
+
+    project.task("shdmStepCounter01${varName}DeleteFiles", type: Delete) {
+        dependsOn project.tasks["compile${varName}Sources"]
+        mustRunAfter project.tasks["compile${varName}Sources"]
+        
+        outputs.upToDateWhen {false}
+
+        File tempFile = new File("${project.buildDir}/stepCounter/${output.dirName}")
+
+        doLast {
+            println "deleting ${tempFile.absolutePath}"
+        }
+
+        if(tempFile.exists()) {
+            delete tempFile
+        }
+    }
+
+    // Copy all Java and XML source files (including generated files) into a temporary folder.
+    // Exclude any files from android.support.* package.
+    // Exclude any package-info.java file.
+    // Exclude any AndroidManifest.xml file.
+    project.task("shdmStepCounter02${varName}CopyFiles") {
+        dependsOn project.tasks["shdmStepCounter01${varName}DeleteFiles"]
+        mustRunAfter project.tasks["shdmStepCounter01${varName}DeleteFiles"]
+        
+        outputs.upToDateWhen {false}
+
+        doLast {
+            srcSet.each { file ->
+                copy {
+                    from file
+                    into "${project.buildDir}/stepCounter/${output.dirName}/${file.name}"
+                    include "**/*.java"
+                    include "**/*.xml"
+                    exclude "**/android/support/**"
+                    exclude "**/*.aidl"
+                    exclude "**/package-info.java"
+                    exclude "**/AndroidManifest.xml"
+                }
+            }
+        }
+    }
+
+    // Copy the aggregated AndroidManifest.xml file into the temporary folder.
+    project.task("shdmStepCounter03${varName}CopyManifest", type: Copy) {
+        dependsOn project.tasks["shdmStepCounter02${varName}CopyFiles"]
+        mustRunAfter project.tasks["shdmStepCounter02${varName}CopyFiles"]
+        
+        outputs.upToDateWhen {false}
+
+        from "${project.buildDir}/intermediates/manifests/full/${output.dirName}/AndroidManifest.xml"
+        into "${project.buildDir}/stepCounter/${output.dirName}"
+    }
+
+    // Call Amateras StepCounter to generate the CSV file containing the line count based on the
+    // files from the temporary folder.
+    // java -cp stepcounter.jar tk.stepcounter.Main -format=csv -output="${project.buildDir}/stepCounter/${output.dirName}" -encoding=UTF-8 "${project.buildDir}/stepCounter/${output.dirName}"
+    project.task("shdmStepCounter04${varName}ExecSC", type: JavaExec) {
+        dependsOn project.tasks["shdmStepCounter03${varName}CopyManifest"]
+        mustRunAfter project.tasks["shdmStepCounter03${varName}CopyManifest"]
+        
+        outputs.upToDateWhen {false}
+
+        //File outputScFile = new File("${project.rootProject.rootDir}/stepCounter/${buildType}")
+        File outputScFile = new File(outputDir)
+        outputScFile.mkdirs()
+
+        //outputScFile = new File(outputScFile, "${outFileUnsigned}.csv")
+        outputScFile = new File(outputScFile, outputFile)
+
+        classpath = files("${COMMON_TOOLS}/stepCounter/stepcounter.jar")
+        main = "tk.stepcounter.Main"
+        args = [
+                "-format=csv",
+                "-output=\"${outputScFile.absolutePath}\"",
+                "-encoding=UTF-8",
+                "\"${project.buildDir}/stepCounter/${output.dirName}\""
+        ]
+
+        // The generated CSV does not contain any header and/or summary of the line count.  So,
+        // we have to add them ourselves.
+        doLast {
+            String csvContent = outputScFile.getText("UTF-8")
+            csvContent = csvContent.replace("\r\n", "\n")       // Normalize.  Some lines may end with Windows-style separator (\r\n); some may end with *nix-style (\n).  Make them uniform.
+            csvContent = csvContent.replace("\n", "\r\n")       // Ensure that all lines end with Windows-style separator.
+            int lines = csvContent.split("\n").length + 1;
+            outputScFile.withWriter("UTF-8") { writer ->                    // Seems to write in "UTF-8 without BOM"
+                writer.write("\ufeff" +                                     // Force BOM header to display Japanese chars correctly in Excel
+                        "\"\u30d5\u30a1\u30a4\u30eb\r\n(File)\"," +         // Header: ファイル (File)
+                        "\"\u7a2e\u985e\r\n(Type)\"," +                     // Header: 種類 (Type)
+                        "\"\u30ab\u30c6\u30b4\u30ea\r\n(Category)\"," +     // Header: カテゴリ (Category)
+                        "\"\u5b9f\u884c\r\n(Executable)\"," +               // Header: 実行 (Run)
+                        "\"\u7a7a\u884c\r\n(Blank Lines)\"," +              // Header: 空行 (Blank Lines)
+                        "\"\u30b3\u30e1\u30f3\u30c8\r\n(Comment)\"," +      // Header: コメント (Comment)
+                        "\"\u5408\u8a08\r\n(Total)\"\r\n" +                 // Header: 合計 (Total)
+                        "${csvContent}\r\n" +                               // Step Count Data (starts from row 2)
+                        ",,\u5408\u8a08 (Total),=sum(D2:D${lines}),=sum(E2:E${lines}),=sum(F2:F${lines}),=sum(G2:G${lines})")  // Summation
+            }
+        }
+    }
+
+    project.task("shdmGenerateStepCounter${varName}") {
+		group "SHDM"
+		
+        dependsOn project.tasks["shdmStepCounter04${varName}ExecSC"]
+        mustRunAfter project.tasks["shdmStepCounter04${varName}ExecSC"]
+	}
+        
+    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmGenerateStepCounter${varName}"]
+    
+    //project.tasks.matching { task ->
+    //    task.name.startsWith('shdm')
+    //}*.group = 'SHDM'
+
+    println("-calculateLinesOfCode")
+}
+
+/**
+ * The built-in signingConfigs of the Android Gradle plugin only allows us
+ * to sign our APK(s) once.
+ *
+ * The set of tasks below will allow us to sign our APK(s) multiple times
+ * with different keys.
+ *
+ * To configure a project to use this signing method (instead of the built-in
+ * one), we must define an extension in the target project named "jarSignerConfig".
+ * This extension must be defined as a Map<String, Map<String, String>> where each
+ * key in the map is a unique name of our signing config (must follow the variable
+ * naming rules) and each value is another Map containing the settings of the
+ * signing config, such as the keystore path, the key alias to be used, an the
+ * store and key passwords.
+ * 
+ * Optionally, we can also add a boolean with the key "signNonDebugBuild" which will
+ * determine whether or not non-debuggable build types (i.e. buildTypes with
+ * "debuggable false") should also be signed.  By convention, non-debuggable types
+ * are the release versions which are normally not signed by the build tool.
+ * This value is false by default.
+ *
+ * Example:
+ * ext {
+ *     jarSignerConfig = [
+ *         signNonDebugBuild: true,
+ *         config1: [
+ *             keystore: "path/to/my/keystore.ks",
+ *             storePass: "keystorepassword",
+ *             keyPass: "keypassword",
+ *             alias: "keyalias"
+ *         ],
+ *         config2: [
+ *             keystore: "path/to/my/second/keystore2.ks",
+ *             storePass: "myPasswordIsAwesome",
+ *             keyPass: "anotherAwesomePassword",
+ *             alias: "anAwesomeAlias"
+ *         ]
+ *     ]
+ * }
+ *
+ * The sample configuration above will cause all your debuggable and non-debuggable APK(s)
+ * to be signed 2x with the keys defined in config1 and config2.
+ *
+ * Please note that using this signing method will overwrite any signature created
+ * by the built-in signingConfigs.
+ */
+afterEvaluate {
+    if(project.hasProperty("jarSignerConfig")) {
+        def signingTaskCount = 0
+        def zipAlignExec = new File(new File(android.sdkDirectory, "build-tools/$android.buildToolsVersion"), "zipalign").absolutePath
+        println("zipalign executable: $zipAlignExec")
+
+        // Library projects do not have applicationVariants.
+        // They have libraryVariants, which, we don't need to sign.
+        if(project.android.hasProperty("applicationVariants")) {
+            project.android.applicationVariants.all { variant ->
+                def variantName = variant.name.capitalize()
+                def returnVal = createSignApkTasks(project, variant, project.jarSignerConfig)
+                String[] signingTasks = returnVal["signingTasks"]
+
+                if(signingTasks.length > 0) {
+                    Map<String, File> outputFiles = returnVal["outputFiles"]
+
+                    project.task("shdmSignApk$variantName") {
+                        group "shdm signer"
+                        dependsOn signingTasks
+                    }
+
+                    signingTaskCount += signingTasks.length
+
+                    if(variant.buildType.zipAlignEnabled) {
+                        project.task("shdmZipAlign$variantName", type: Exec) {
+                            dependsOn project.tasks["shdmSignApk$variantName"]
+
+                            commandLine "\"$zipAlignExec\"", "-v",
+                                    "-f", "4",
+                                    "\"" + outputFiles["signedApk"].absolutePath + "\"",
+                                    "\"" + outputFiles["alignedApk"].absolutePath + "\""
+                        }
+
+                        project.tasks["assemble$variantName"].dependsOn project.tasks["shdmZipAlign$variantName"]
+                    } else {
+                        project.tasks["assemble$variantName"].dependsOn project.tasks["shdmSignApk$variantName"]
+                    }
+                }
+            }
+        }
+
+        // testVariants is present to both application and library projects
+        project.android.testVariants.all { variant ->
+            def variantName = variant.name.capitalize()
+            def returnVal = createSignApkTasks(project, variant, project.jarSignerConfig)
+            String[] signingTasks = returnVal["signingTasks"]
+
+            if(signingTasks.length > 0) {
+                Map<String, File> outputFiles = returnVal["outputFiles"]
+
+                project.task("shdmSignApk$variantName") {
+                    group "shdm signer"
+                    dependsOn signingTasks
+                }
+
+                signingTaskCount += signingTasks.length
+
+                if(variant.buildType.zipAlignEnabled) {
+                    project.task("shdmZipAlign$variantName", type: Exec) {
+                        dependsOn project.tasks["shdmSignApk$variantName"]
+
+                        commandLine "\"$zipAlignExec\"", "-v",
+                                "-f", "4",
+                                "\"" + outputFiles["signedApk"].absolutePath + "\"",
+                                "\"" + outputFiles["alignedApk"].absolutePath + "\""
+                    }
+
+                    project.tasks["assemble$variantName"].dependsOn project.tasks["shdmZipAlign$variantName"]
+                } else {
+                    project.tasks["assemble$variantName"].dependsOn project.tasks["shdmSignApk$variantName"]
+                }
+            }
+        }
+
+        if(signingTaskCount > 0) {
+			println("")
+            println("IMPORTANT NOTICE: Custom signing configurations (jarSignerConfig) were found for this project!")
+            println("                  Any signature done by the built-in signer will be discarded and replaced with")
+            println("                  those defined by jarSignerConfig.")
+			println("")
+        }
+    }
+}
+
+/**
+ * <p>
+ * Retrieves the correct platform path (${sdkDirectory}/platforms/${platformDir}) that corresponds
+ * to the given SDK/API version.
+ *
+ * @param sdkDirectory The root Android SDK path from where to search for the platform.
+ * @param compileSdkVersion The SDK version to check (format: "android-${apiLevel}";
+ *                          ex: "android-21" for Android Lollipop 5.0).
+ * @return The platform path corresponding to the given SDK version.
+ */
+File getSdkPlatformFolder(File sdkDirectory, String compileSdkVersion) {
+    def platformDir
+
+    // Retrieve the list of folders, in SDK/platforms.
+    def platformsDir = new File(sdkDirectory, "platforms")
+
+    def platforms = platformsDir.listFiles()
+    def numPlatforms = platforms.length
+
+    def platformIndex = 0
+
+    // Iterate through all the platforms subfolders
+    for(; platformIndex < numPlatforms; platformIndex++) {
+        platformDir = platforms[platformIndex]
+        def propFile = new File(platformDir, "source.properties")
+
+        println("Prop file: ${propFile}")
+
+        // Check if ${sdkDirectory}/platforms/${platformDir}/source.properties exists
+        if(propFile.exists() && propFile.isFile()) {
+            def apiLevel = ""
+
+            // If it exists, retrieve the value of the property, "AndroidVersion.ApiLevel"
+            file(propFile).withReader { reader ->
+                def sdkProps = new Properties()
+                sdkProps.load(reader)
+                apiLevel = sdkProps.getProperty("AndroidVersion.ApiLevel")
+            }
+
+            println("API level: ${apiLevel}")
+
+            // If the value of "AndroidVersion.ApiLevel" matches the given version, then we've
+            // found the platform folder.
+            if("android-${apiLevel}".equalsIgnoreCase(compileSdkVersion.toString())) {
+                break;
+            }
+        }
+    }
+
+    return platformDir
+}
+
+/**
+ * Creates several tasks for signing an APK using the custom jarSignerConfig configuration.
+ *
+ * Returns a Map<String, Object> containing the following (key: value):
+ *   signingTasks: String[] containing the names of the tasks that will perform the signing of the APK.
+ *   outputFiles: Map<String, File> containing the output files where:
+ *      unsignedApk: The file pointing to the unsigned APK
+ *      signedApk: The file pointing to the signed (unaligned) APK
+ *      alignedApk: The file pointing to the signed and aligned APK
+ */
+def createSignApkTasks(project, variant, jarSignerConfig) {
+    def variantDebuggable = variant.buildType.debuggable
+    def signNonDebugBuild = (jarSignerConfig["signNonDebugBuild"] == null) ? false : jarSignerConfig["signNonDebugBuild"]
+    def configCount = jarSignerConfig.size() - (jarSignerConfig.containsKey("signNonDebugBuild") ? 1 : 0)
+
+    def signingTasks = [];
+    def outputFiles = new HashMap<>()
+
+    // If the buildType is non-debuggable and jarSignerConfig is
+    // not set to sign non-debug builds, then we don't create
+    // any signing task for that build.
+
+    if(variantDebuggable || signNonDebugBuild) {
+        def variantName = variant.name.capitalize()
+
+        def unsignedApk
+        def signedApk
+        def alignedApk
+
+        variant.outputs.each { output ->
+			def baseFile = file(output.outputFile.absolutePath.replace("-unsigned.apk", ".apk"))
+			baseFile = file(baseFile.absolutePath.replace("-unaligned.apk", ".apk"))
+			baseFile = file(baseFile.absolutePath.replace("-signed.apk", ".apk"))
+			
+			output.outputFile = baseFile
+			output.packageApplication.outputFile = file(baseFile.absolutePath.replace(".apk", "-unaligned.apk"))
+		
+			// The Android Gradle plugin uses the same file for the original input (unsigned APK)
+			// and the final output (aligned APK)
+            unsignedApk = output.outputFile
+            signedApk = output.packageApplication.outputFile
+            alignedApk = output.outputFile
+
+            // Since this is actually a signed APK, remove the "-unsigned" suffix
+            // and replace it with "-unaligned" which is currently the suffix used
+            // by the Android Gradle plugin to mark an APK as signed (but not yet
+            // aligned).
+            // TODO: Please note that this may change in the future!
+            if(signedApk.name.endsWith("-unsigned.apk")) {
+                signedApk = file(signedApk.absolutePath.replace("-unsigned.apk", "-unaligned.apk"))
+            }
+
+            if(alignedApk.name.endsWith("-unsigned.apk")) {
+                alignedApk = file(alignedApk.absolutePath.replace("-unsigned.apk", ".apk"))
+            }
+			
+            if(alignedApk.name.endsWith("-unaligned.apk")) {
+                alignedApk = file(alignedApk.absolutePath.replace("-unaligned.apk", ".apk"))
+            }
+			
+            if(unsignedApk.name.endsWith("-unaligned.apk")) {
+                unsignedApk = file(unsignedApk.absolutePath.replace("-unaligned.apk", ".apk"))
+            }
+			
+			println("")
+			println("Variant: $variantName")
+			println("    unsignedApk: $unsignedApk")
+			println("    signedApk: $signedApk")
+			println("    alignedApk: $alignedApk")
+
+            outputFiles = [
+                    unsignedApk: unsignedApk,
+                    signedApk: signedApk,
+                    alignedApk: alignedApk
+            ]
+
+            // (1)
+            // Copy the original signed APK into a temporary folder
+            // (in "build\distributions"), removing the "META-INF"
+            // inside the APK.
+            // Removing the "META-INF" from the original APK is
+            // necessary as it seems to prevent us from properly
+            // re-signing the APK with JarSigner.
+            def dependsOnTask
+            def mustRunAfterTask
+
+            if(output.zipAlign) {
+                dependsOnTask = project.tasks["zipalign$variantName"]
+                mustRunAfterTask = project.tasks["zipalign$variantName"]
+            } else {
+                dependsOnTask = project.tasks["package$variantName"]
+                mustRunAfterTask = project.tasks["package$variantName"]
+            }
+			
+			if(variantDebuggable) {
+				project.task("shdmUnsignApk$variantName", type: Zip) {
+					dependsOn dependsOnTask
+					mustRunAfter mustRunAfterTask
+
+					archiveName "$project.name${variantName}.apk"
+
+					// The aligned APK may have the same name as the unsigned APK.
+					// This is because the built-in tasks which perform the
+					// signing overwrites the unsigned APK with the aligned
+					// APK.  And since our tasks runs after the built-in
+					// tasks, what we're referring to as the unsigned APK
+					// may have already been signed and aligned by this time.
+					from zipTree(signedApk)
+
+					// If the input APK is indeed a signed APK, then,
+					// remove the META-INF folder that contains the signature.
+					exclude "META-INF/**"
+				}
+			} else {
+				// If the variant is non-debuggable, it usually means it's a
+				// release variant and so should not have a signed APK in the
+				// first place.
+				project.task("shdmUnsignApk$variantName", type: Zip) {
+					dependsOn dependsOnTask
+					mustRunAfter mustRunAfterTask
+
+					archiveName "$project.name${variantName}.apk"
+
+					// The aligned APK may have the same name as the unsigned APK.
+					// This is because the built-in tasks which perform the
+					// signing overwrites the unsigned APK with the aligned
+					// APK.  And since our tasks runs after the built-in
+					// tasks, what we're referring to as the unsigned APK
+					// may have already been signed and aligned by this time.
+					from zipTree(unsignedApk)
+
+					// An unsigned APK should not have a META-INF folder, but
+					// just to be sure, we still exclude it in case it's there.
+					exclude "META-INF/**"
+				}
+			}
+
+            // (2)
+            // Delete the original unsigned, signed and aligned APKs from "build\outputs\apk".
+            project.task("shdmDeleteSignedApk$variantName", type: Delete) {
+                dependsOn project.tasks["shdmUnsignApk$variantName"]
+                mustRunAfter project.tasks["shdmUnsignApk$variantName"]
+
+                delete unsignedApk, signedApk, alignedApk
+            }
+
+            // (3)
+            // Put the unsigned APK created in step (1) into "build\outputs\apk".
+            project.task("shdmCopyUnsignedApk$variantName", type: Copy) {
+                dependsOn project.tasks["shdmDeleteSignedApk$variantName"]
+                mustRunAfter project.tasks["shdmDeleteSignedApk$variantName"]
+
+                from "$project.buildDir/distributions/$project.name${variantName}.apk"
+                into output.outputFile.parentFile
+
+                rename file("$project.buildDir/distributions/$project.name${variantName}.apk").name,
+                        unsignedApk.name
+            }
+
+            // (4)
+            // Delete the temporary APK from the distributions folder
+            project.task("shdmDeleteUnsingedApk$variantName", type: Delete) {
+                dependsOn project.tasks["shdmCopyUnsignedApk$variantName"]
+                mustRunAfter project.tasks["shdmCopyUnsignedApk$variantName"]
+
+                delete file("$project.buildDir/distributions/$project.name${variantName}.apk")
+            }
+
+            // (5)
+            // Create the input APK for JarSigner.
+            // We will use signedApk as the input and output of JarSigner
+            // so that we won't have to worry about input for multiple
+            // JarSigner sessions.
+            if(configCount > 0) {
+                project.task("shdmCreateJarSignerInput$variantName", type: Copy) {
+                    dependsOn project.tasks["shdmDeleteUnsingedApk$variantName"]
+                    mustRunAfter project.tasks["shdmDeleteUnsingedApk$variantName"]
+
+					doFirst {
+						println("shdmCreateJarSignerInput$variantName> [src] unsignedApk: $unsignedApk")
+						println("shdmCreateJarSignerInput$variantName> [dst] signedApk: $signedApk")
+					}
+					
+                    from unsignedApk.absolutePath
+                    into unsignedApk.parentFile
+
+                    rename unsignedApk.name, signedApk.name
+
+					doLast {
+						println("shdmCreateJarSignerInput$variantName> [src] unsignedApk: $unsignedApk")
+						println("shdmCreateJarSignerInput$variantName> [dst] signedApk: $signedApk")
+					}
+                }
+            }
+        }
+
+        jarSignerConfig.each { config ->
+            def configName = config.key.capitalize()
+
+            if(!config.key.equals("signNonDebugBuild")) {
+                // (6)
+                // Sign the unsigned APK with the specified key using JarSigner.
+                project.task("shdmSignApkWithJarSigner$configName$variantName", type: Exec) {
+                    dependsOn project.tasks["shdmCreateJarSignerInput$variantName"]
+                    mustRunAfter project.tasks["shdmCreateJarSignerInput$variantName"]
+
+                    def keyStore = config.value["keystore"]
+                    def storePass = config.value["storePass"]
+                    def keyPass = config.value["keyPass"]
+                    def alias = config.value["alias"]
+
+                    doLast {
+                        if(signedApk.exists()) {
+                            println("Signed $signedApk.absolutePath")
+                            println("    Keystore: $keyStore")
+                            println("    Alias: $alias")
+                        }
+                    }
+
+                    commandLine "jarsigner", "-verbose",
+                            "-sigalg", "SHA1withRSA",
+                            "-digestalg", "SHA1",
+                            "-keystore", "\"$keyStore\"",
+                            "-storepass", "\"$storePass\"",
+                            "-keypass", "\"$keyPass\"",
+                            "\"$signedApk.absolutePath\"",
+                            "\"$alias\""
+                }
+
+                signingTasks << "shdmSignApkWithJarSigner$configName$variantName"
+            }
+        }
+    }
+
+    return [
+            signingTasks: signingTasks,
+            outputFiles: outputFiles
+    ]
+}
+
+dependencies {
+    yDoclet files("${COMMON_TOOLS}/javaDoc/yworks-doclet/lib/ydoc.jar")
+    yDoclet fileTree("${COMMON_TOOLS}/javaDoc/yworks-doclet/resources")
+}
+
+def getAndroidGradlePluginVersion() {
+    String version = "";
+
+    // look for gradle-x.y.z.jar
+    def gradleRegexp = /^gradle-([\d.]+).*\.jar/
+    rootProject.buildscript.configurations.classpath.each { depFile ->
+        if (depFile.name.matches(gradleRegexp)) {
+            version = (depFile.name =~ gradleRegexp)[0][1]
+        }
+    }
+
+    return version
+}
+// -------------------------------------------------------------------------------------------------
+// END: CUSTOM SCRIPTS
+// -------------------------------------------------------------------------------------------------
