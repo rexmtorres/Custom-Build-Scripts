@@ -12,13 +12,13 @@ def latestVersion = gradleVersion.matches(/^4\.[456789]\d*\.*\d*$/) ? "gradle4x-
 
 println "\n"
 println "========================================================================================="
-println "Mobile SHD Gradle Helper Scripts"
+println "Gradle Helper Scripts"
 println "Version: ${latestVersion}"
 println "========================================================================================="
 println "\n"
 
 def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
-apply from: "${cdnRoot}/scripts/shdm-${latestVersion}.gradle"
+apply from: "${cdnRoot}/scripts/rmt-${latestVersion}.gradle"
 
 def getAndroidGradlePluginVersion() {
     String plugVer = ""

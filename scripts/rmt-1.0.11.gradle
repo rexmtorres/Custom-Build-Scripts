@@ -1,10 +1,10 @@
 /**
  * Helper functions to help set up Gradle tasks for commonly used procedures.  To use this in your
  * AS projects, import this script into your module by adding:
- *     apply from: '<absolute_path_to_script>/shdm-<version>.gradle
+ *     apply from: '<absolute_path_to_script>/rmt-<version>.gradle
  *
  * Example:
- *     apply from: 'scripts/shdm-1.0.0.gradle'
+ *     apply from: 'scripts/rmt-1.0.0.gradle'
  *
  * This will make the following functions available:
  *     + renameOutputFile - Copies and renames the output APK/AAR into a specified folder.  If the
@@ -104,7 +104,7 @@ ext.renameOutputFile = { /* Project */ project, /* BaseVariantOutput */ output, 
 //                output.packageApplication.outputFile = new File(distDir, newFileName)
 //            }
 
-            println "shdmCopyApk${varName}> output.zipAlign: ${output.zipAlign}..."
+            println "rmtCopyApk${varName}> output.zipAlign: ${output.zipAlign}..."
 
             if(output.zipAlign) {
                 outApk = output.outputFile
@@ -112,8 +112,8 @@ ext.renameOutputFile = { /* Project */ project, /* BaseVariantOutput */ output, 
                 outApk = output.packageApplication.outputFile
             }
 
-            project.task("shdmCopyApk${varName}", type: Copy) {
-				group "SHDM"
+            project.task("rmtCopyApk${varName}", type: Copy) {
+				group "RMT"
 				
                 if(output.zipAlign) {
                     dependsOn project.tasks["zipalign${varName}"]
@@ -129,23 +129,23 @@ ext.renameOutputFile = { /* Project */ project, /* BaseVariantOutput */ output, 
 
                 def dest = new File(distDir, newFileName)
 
-                println "shdmCopyApk${varName}> Source: ${outApk.absolutePath}..."
-                println "shdmCopyApk${varName}> Source exits: ${outApk.exists()}"
-                println "shdmCopyApk${varName}> Destination: ${dest.absolutePath}..."
-                println "shdmCopyApk${varName}> Destination exits: ${dest.exists()}"
+                println "rmtCopyApk${varName}> Source: ${outApk.absolutePath}..."
+                println "rmtCopyApk${varName}> Source exits: ${outApk.exists()}"
+                println "rmtCopyApk${varName}> Destination: ${dest.absolutePath}..."
+                println "rmtCopyApk${varName}> Destination exits: ${dest.exists()}"
 
                 outputs.upToDateWhen {dest.exists()}
                 inputs.file outApk
                 outputs.file dest
 
-                println "shdmCopyApk${varName}> Saving ${newFileName} to ${distDir.absolutePath}..."
+                println "rmtCopyApk${varName}> Saving ${newFileName} to ${distDir.absolutePath}..."
 
                 from("${outApk.absolutePath}")
                 into(distDir)
                 rename(outApk.name, newFileName)
             }
             
-            project.tasks["assemble${varName}"].dependsOn project.tasks["shdmCopyApk${varName}"]
+            project.tasks["assemble${varName}"].dependsOn project.tasks["rmtCopyApk${varName}"]
         } else {
             // For LibraryVariants, extract the JAR file from the AAR file and export it to the
             // output folder (in addition to the AAR file).  AAR file is only supported in Android
@@ -157,7 +157,7 @@ ext.renameOutputFile = { /* Project */ project, /* BaseVariantOutput */ output, 
             def jarFileName = newFileName.replace(".aar", ".jar")
 
             // Extract the classes.jar file inside the AAR file and rename it to the variant name.
-            project.task("shdmExtractJar${varName}", type: Copy) {
+            project.task("rmtExtractJar${varName}", type: Copy) {
                 dependsOn project.tasks["bundle${varName}"]
                 mustRunAfter project.tasks["bundle${varName}"]
                 
@@ -167,25 +167,25 @@ ext.renameOutputFile = { /* Project */ project, /* BaseVariantOutput */ output, 
             }
 
             // Copy the extracted JAR file into the output directory.
-            project.task("shdmCopyJar${varName}", type: Copy) {
-				group "SHDM"
+            project.task("rmtCopyJar${varName}", type: Copy) {
+				group "RMT"
 				
-                dependsOn project.tasks["shdmExtractJar${varName}"]
-                mustRunAfter project.tasks["shdmExtractJar${varName}"]
+                dependsOn project.tasks["rmtExtractJar${varName}"]
+                mustRunAfter project.tasks["rmtExtractJar${varName}"]
                 
                 from("${explodedAar.absolutePath}/${jarFileName}")
                 into(output.outputFile.parentFile)
             }
 
-            project.tasks["assemble${varName}"].dependsOn project.tasks["shdmCopyJar${varName}"]
+            project.tasks["assemble${varName}"].dependsOn project.tasks["rmtCopyJar${varName}"]
         }
 
         println(" \tOutput: ${newFileName}")
     }
     
     //project.tasks.matching { task ->
-    //    task.name.startsWith('shdm')
-    //}*.group = 'SHDM'
+    //    task.name.startsWith('rmt')
+    //}*.group = 'RMT'
     
     println("-renameOutputFile")
     println("---------------------------------------------------------------------------------")
@@ -224,12 +224,12 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
     def metaInf = file("${project.buildDir}/tmp/unpacked/${variant.dirName}/META-INF")
 
     // Delete any old files in the temp folder
-    project.task("shdmUnsignApk${varName}00DeleteTmp", type: Delete) {
+    project.task("rmtUnsignApk${varName}00DeleteTmp", type: Delete) {
         try {
-            dependsOn project.tasks["shdmCopyApk${varName}"]
-            mustRunAfter project.tasks["shdmCopyApk${varName}"]
+            dependsOn project.tasks["rmtCopyApk${varName}"]
+            mustRunAfter project.tasks["rmtCopyApk${varName}"]
         } catch(Exception e) {
-            println "shdmCopyApk${varName} does not exist!"
+            println "rmtCopyApk${varName} does not exist!"
             dependsOn project.tasks["package${varName}"]
             mustRunAfter project.tasks["package${varName}"]
         }
@@ -237,12 +237,12 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
         outputs.upToDateWhen {false}
 
         doLast {
-            println("shdmUnsignApk${varName}00DeleteTmp> Unpacked: ${unpacked}")
+            println("rmtUnsignApk${varName}00DeleteTmp> Unpacked: ${unpacked}")
         }
 
         if(unpacked.exists()) {
             doLast {
-                println("shdmUnsignApk${varName}00DeleteTmp> Deleting: ${unpacked}")
+                println("rmtUnsignApk${varName}00DeleteTmp> Deleting: ${unpacked}")
             }
 
             delete unpacked
@@ -250,37 +250,37 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
     }
 
     // Unzip the APK into a temp folder
-    //project.task("shdmUnsignApk${varName}01Unpack", type: Copy) {
-    project.task("shdmUnsignApk${varName}01Unpack") {
-        dependsOn project.tasks["shdmUnsignApk${varName}00DeleteTmp"]
-        mustRunAfter project.tasks["shdmUnsignApk${varName}00DeleteTmp"]
+    //project.task("rmtUnsignApk${varName}01Unpack", type: Copy) {
+    project.task("rmtUnsignApk${varName}01Unpack") {
+        dependsOn project.tasks["rmtUnsignApk${varName}00DeleteTmp"]
+        mustRunAfter project.tasks["rmtUnsignApk${varName}00DeleteTmp"]
     
         outputs.upToDateWhen {false}
 
         doLast {
             if(fApkIn.exists() && fApkIn.isFile() && fApkIn.absolutePath.toLowerCase().endsWith(".apk")) {
-                println("shdmUnsignApk${varName}01Unpack> Unpacking ${fApkIn.absolutePath} ${unpacked}")
+                println("rmtUnsignApk${varName}01Unpack> Unpacking ${fApkIn.absolutePath} ${unpacked}")
 
                 copy {
                     from zipTree(fApkIn)
                     into unpacked
                 }
             } else {
-                println("shdmUnsignApk${varName}01Unpack> ${fApkIn.absolutePath} is not a valid APK!  Task skipped!")
+                println("rmtUnsignApk${varName}01Unpack> ${fApkIn.absolutePath} is not a valid APK!  Task skipped!")
             }
         }
     }
 
     // Delete the META-INF folder containing the signature(s)
-    project.task("shdmUnsignApk${varName}02DeleteCert", type: Delete) {
-        dependsOn project.tasks["shdmUnsignApk${varName}01Unpack"]
-        mustRunAfter project.tasks["shdmUnsignApk${varName}01Unpack"]
+    project.task("rmtUnsignApk${varName}02DeleteCert", type: Delete) {
+        dependsOn project.tasks["rmtUnsignApk${varName}01Unpack"]
+        mustRunAfter project.tasks["rmtUnsignApk${varName}01Unpack"]
     
         outputs.upToDateWhen {false}
 
         doLast {
-            println("shdmUnsignApk${varName}02DeleteCert> META-INF: ${metaInf}")
-            println("shdmUnsignApk${varName}02DeleteCert> Deleting: ${metaInf}")
+            println("rmtUnsignApk${varName}02DeleteCert> META-INF: ${metaInf}")
+            println("rmtUnsignApk${varName}02DeleteCert> Deleting: ${metaInf}")
         }
 
         delete metaInf
@@ -289,14 +289,14 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
     // Zip the files back from the temp folder
     def arcPath = file("${variant.dirName}/unsigned.apk")
 
-    // These force task "shdmUnsignApk${varName}" to always be executed.
+    // These force task "rmtUnsignApk${varName}" to always be executed.
     // Without them, the task will be skipped.
-    def task04Input = file("${project.buildDir}/tmp/shdmUnsignApk${varName}.in")
-    def task04Output = file("${project.buildDir}/tmp/shdmUnsignApk${varName}.out")
+    def task04Input = file("${project.buildDir}/tmp/rmtUnsignApk${varName}.in")
+    def task04Output = file("${project.buildDir}/tmp/rmtUnsignApk${varName}.out")
 
-    project.task("shdmUnsignApk${varName}03Zip", type: Zip) {
-        dependsOn project.tasks["shdmUnsignApk${varName}02DeleteCert"]
-        mustRunAfter project.tasks["shdmUnsignApk${varName}02DeleteCert"]
+    project.task("rmtUnsignApk${varName}03Zip", type: Zip) {
+        dependsOn project.tasks["rmtUnsignApk${varName}02DeleteCert"]
+        mustRunAfter project.tasks["rmtUnsignApk${varName}02DeleteCert"]
     
         outputs.upToDateWhen {false}
 
@@ -304,9 +304,9 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
         from unpacked
 
         doLast {
-            println("shdmUnsignApk${varName}03Zip> Unpacked: ${unpacked}")
-            println("shdmUnsignApk${varName}03Zip> Base Name: ${baseName}")
-            println("shdmUnsignApk${varName}03Zip> Zipped ${unpacked} to ${archivePath}")
+            println("rmtUnsignApk${varName}03Zip> Unpacked: ${unpacked}")
+            println("rmtUnsignApk${varName}03Zip> Base Name: ${baseName}")
+            println("rmtUnsignApk${varName}03Zip> Zipped ${unpacked} to ${archivePath}")
 
             arcPath = file(archivePath)
 
@@ -321,12 +321,12 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
     }
 
     // Copy the unsigned APK into the final output APK
-    //project.task("shdmUnsignApk${varName}04Copy", type: Copy) {
-    project.task("shdmUnsignApk${varName}") {
-		group "SHDM"
+    //project.task("rmtUnsignApk${varName}04Copy", type: Copy) {
+    project.task("rmtUnsignApk${varName}") {
+		group "RMT"
 		
-        dependsOn project.tasks["shdmUnsignApk${varName}03Zip"]
-        mustRunAfter project.tasks["shdmUnsignApk${varName}03Zip"]
+        dependsOn project.tasks["rmtUnsignApk${varName}03Zip"]
+        mustRunAfter project.tasks["rmtUnsignApk${varName}03Zip"]
 
         outputs.upToDateWhen {false}
 
@@ -334,8 +334,8 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
         outputs.file task04Output
 
         doLast {
-            println("shdmUnsignApk${varName}> Packed: ${arcPath}")
-            println("shdmUnsignApk${varName}> Copying ${arcPath} to ${fApkOut}")
+            println("rmtUnsignApk${varName}> Packed: ${arcPath}")
+            println("rmtUnsignApk${varName}> Copying ${arcPath} to ${fApkOut}")
 
             if(!task04Output.exists()) {
                 task04Output.createNewFile();
@@ -354,11 +354,11 @@ ext.unsignApk = { /* Project */ project, /* BaseVariant */ variant, /* String */
         }
     }
 
-    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmUnsignApk${varName}"]
+    project.tasks["assemble${varName}"].dependsOn project.tasks["rmtUnsignApk${varName}"]
     
     //project.tasks.matching { task ->
-    //    task.name.startsWith('shdm')
-    //}*.group = 'SHDM'
+    //    task.name.startsWith('rmt')
+    //}*.group = 'RMT'
 
     println("-unsignApk")
 }
@@ -387,12 +387,12 @@ ext.exportApkProguardMapping = { /* Project */ project, /* BaseVariant */ varian
     println("source: ${srcDir}")
     println("destination: ${outputFolder}")
 
-    project.task("shdmExportMap${varName}", type: Copy) {
-		group "SHDM"
+    project.task("rmtExportMap${varName}", type: Copy) {
+		group "RMT"
 		
         // In Android Gradle plugin v2.1.0-alpha1, proguard${varName} has been replaced with transformClassesAndResourcesWithProguardFor${varName}
         // transformClassesAndResourcesWithProguardFor${varName} may be changed again in the future, but package${varName} seems to be unchanging.
-        // So, we'll just use package${varName} instead as a "mustRunAfter" dependency for shdmExportMap${varName}.
+        // So, we'll just use package${varName} instead as a "mustRunAfter" dependency for rmtExportMap${varName}.
         try {
             dependsOn project.tasks["proguard${varName}"]
             mustRunAfter project.tasks["proguard${varName}"]
@@ -416,11 +416,11 @@ ext.exportApkProguardMapping = { /* Project */ project, /* BaseVariant */ varian
         into(outputFolder)
     }
 
-    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmExportMap${varName}"]
+    project.tasks["assemble${varName}"].dependsOn project.tasks["rmtExportMap${varName}"]
     
     //project.tasks.matching { task ->
-    //    task.name.startsWith('shdm')
-    //}*.group = 'SHDM'
+    //    task.name.startsWith('rmt')
+    //}*.group = 'RMT'
 }
 
 /**
@@ -430,13 +430,13 @@ ext.exportApkProguardMapping = { /* Project */ project, /* BaseVariant */ varian
  * <p>
  * Creates 4 tasks for the specified variant:
  * <ol>
- *     <li>shdmExcludeRes${variant} - Modifies R.java and Manifest.java to add "@y.exclude" yDoc
+ *     <li>rmtExcludeRes${variant} - Modifies R.java and Manifest.java to add "@y.exclude" yDoc
  *        JavaDoc tags to exclude them from the JavaDoc
- *     <li>shdmJavaDoc${variant} - Generates the JavaDoc with UML diagrams c/o the yDoc doclet
+ *     <li>rmtJavaDoc${variant} - Generates the JavaDoc with UML diagrams c/o the yDoc doclet
  *         (http://www.yworks.com/en/products_ydoc.html)
- *     <li>shdmSyntaxify${variant} - Beautifies source code samples in the JavaDoc by applying
+ *     <li>rmtSyntaxify${variant} - Beautifies source code samples in the JavaDoc by applying
  *         syntax highlighting using SyntaxHiglighter (http://alexgorbatchev.com/SyntaxHighlighter/)
- *     <li>shdmArchiveJavaDoc${variant} - Packages the generated JavaDoc into a ZIP file and puts
+ *     <li>rmtArchiveJavaDoc${variant} - Packages the generated JavaDoc into a ZIP file and puts
  *         the ZIP file into the root folder under "build/JavaDocs".
  * </ol>
  *
@@ -478,7 +478,7 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
     def resSource = "${project.buildDir}/generated/source/r/${output.dirName}"
     def resExcluded = "${project.buildDir}/r.excluded/source/r/${output.dirName}"
 
-    project.task("shdmExcludeRes00${varName}", type: Copy) {
+    project.task("rmtExcludeRes00${varName}", type: Copy) {
         dependsOn project.tasks["compile${varName}Sources"]
         mustRunAfter project.tasks["compile${varName}Sources"]
     
@@ -496,9 +496,9 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         }
     }
 
-    project.task("shdmExcludeRes${varName}", type: Copy) {
-        dependsOn project.tasks["shdmExcludeRes00${varName}"]
-        mustRunAfter project.tasks["shdmExcludeRes00${varName}"]
+    project.task("rmtExcludeRes${varName}", type: Copy) {
+        dependsOn project.tasks["rmtExcludeRes00${varName}"]
+        mustRunAfter project.tasks["rmtExcludeRes00${varName}"]
     
         outputs.upToDateWhen {false}
 
@@ -509,7 +509,7 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
     }
 
     // Generates the JavaDoc with UML using yDoc doclet
-    project.task("shdmJavaDoc${varName}", type: Javadoc) {
+    project.task("rmtJavaDoc${varName}", type: Javadoc) {
 	    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 			def osBit = System.properties['sun.arch.data.model']
 			executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
@@ -518,8 +518,8 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
 			println "   \"$executable\""
 		}
 		
-        dependsOn project.tasks["shdmExcludeRes${varName}"]
-        mustRunAfter project.tasks["shdmExcludeRes${varName}"]
+        dependsOn project.tasks["rmtExcludeRes${varName}"]
+        mustRunAfter project.tasks["rmtExcludeRes${varName}"]
         
         title = javaDocTitle
         source = variant.javaCompile.source
@@ -575,9 +575,9 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
     def syntaxifiedFiles = "${project.buildDir}/javadoc.syntaxified/${archiveName}"
     def styleSheetFile = new File("${javaDocSource}/stylesheet.css")
 
-    project.task("shdmSyntaxify00${varName}", type: Copy) {
-        dependsOn project.tasks["shdmJavaDoc${varName}"]
-        mustRunAfter project.tasks["shdmJavaDoc${varName}"]
+    project.task("rmtSyntaxify00${varName}", type: Copy) {
+        dependsOn project.tasks["rmtJavaDoc${varName}"]
+        mustRunAfter project.tasks["rmtJavaDoc${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -585,9 +585,9 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         into javaDocSource
     }
 
-    project.task("shdmSyntaxify01${varName}", type: Copy) {
-        dependsOn project.tasks["shdmSyntaxify00${varName}"]
-        mustRunAfter project.tasks["shdmSyntaxify00${varName}"]
+    project.task("rmtSyntaxify01${varName}", type: Copy) {
+        dependsOn project.tasks["rmtSyntaxify00${varName}"]
+        mustRunAfter project.tasks["rmtSyntaxify00${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -603,9 +603,9 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         }
     }
 
-    project.task("shdmSyntaxify02${varName}", type: Copy) {
-        dependsOn project.tasks["shdmSyntaxify01${varName}"]
-        mustRunAfter project.tasks["shdmSyntaxify01${varName}"]
+    project.task("rmtSyntaxify02${varName}", type: Copy) {
+        dependsOn project.tasks["rmtSyntaxify01${varName}"]
+        mustRunAfter project.tasks["rmtSyntaxify01${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -626,9 +626,9 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
     // "build" directory
     def arcPath
 
-    project.task("shdmArchiveJavaDoc00${varName}", type: Zip) {
-        dependsOn project.tasks["shdmSyntaxify02${varName}"]
-        mustRunAfter project.tasks["shdmSyntaxify02${varName}"]
+    project.task("rmtArchiveJavaDoc00${varName}", type: Zip) {
+        dependsOn project.tasks["rmtSyntaxify02${varName}"]
+        mustRunAfter project.tasks["rmtSyntaxify02${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -639,11 +639,11 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         arcPath = archivePath
     }
 
-    project.task("shdmArchiveJavaDoc${varName}", type: Copy) {
-		group "SHDM"
+    project.task("rmtArchiveJavaDoc${varName}", type: Copy) {
+		group "RMT"
 		
-        dependsOn project.tasks["shdmArchiveJavaDoc00${varName}"]
-        mustRunAfter project.tasks["shdmArchiveJavaDoc00${varName}"]
+        dependsOn project.tasks["rmtArchiveJavaDoc00${varName}"]
+        mustRunAfter project.tasks["rmtArchiveJavaDoc00${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -654,11 +654,11 @@ ext.createJavaDoc = { /* ConfigurableFileCollection */ additionalSourceFiles, /*
         println "Destination: ${outputPath}"
     }
 
-    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmArchiveJavaDoc${varName}"]
+    project.tasks["assemble${varName}"].dependsOn project.tasks["rmtArchiveJavaDoc${varName}"]
     
     //project.tasks.matching { task ->
-    //    task.name.startsWith('shdm')
-    //}*.group = 'SHDM'
+    //    task.name.startsWith('rmt')
+    //}*.group = 'RMT'
 }
 
 ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSourceFiles, /* ConfigurableFileCollection */ additionalClasspathFiles,
@@ -677,7 +677,7 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
     def resSource = "${project.buildDir}/generated/source/r/${output.dirName}"
     def resExcluded = "${project.buildDir}/r.excluded/source/r/${output.dirName}"
 
-    project.task("shdmExcludeRes00${varName}", type: Copy) {
+    project.task("rmtExcludeRes00${varName}", type: Copy) {
         dependsOn project.tasks["compile${varName}Sources"]
         mustRunAfter project.tasks["compile${varName}Sources"]
     
@@ -695,9 +695,9 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         }
     }
 
-    project.task("shdmExcludeRes${varName}", type: Copy) {
-        dependsOn project.tasks["shdmExcludeRes00${varName}"]
-        mustRunAfter project.tasks["shdmExcludeRes00${varName}"]
+    project.task("rmtExcludeRes${varName}", type: Copy) {
+        dependsOn project.tasks["rmtExcludeRes00${varName}"]
+        mustRunAfter project.tasks["rmtExcludeRes00${varName}"]
     
         outputs.upToDateWhen {false}
 
@@ -708,7 +708,7 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
     }
 
     // Generates the JavaDoc with UML using yDoc doclet
-    project.task("shdmJavaDoc${varName}", type: Javadoc) {
+    project.task("rmtJavaDoc${varName}", type: Javadoc) {
 	    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 			def osBit = System.properties['sun.arch.data.model']
 			executable = "$COMMON_TOOLS/javaDoc/jdk/win/${osBit}-bit/bin/javadoc.exe"
@@ -717,8 +717,8 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
 			println "   \"$executable\""
 		}
 		
-        dependsOn project.tasks["shdmExcludeRes${varName}"]
-        mustRunAfter project.tasks["shdmExcludeRes${varName}"]
+        dependsOn project.tasks["rmtExcludeRes${varName}"]
+        mustRunAfter project.tasks["rmtExcludeRes${varName}"]
 		
 		if (excludedFiles != null) {
 		    exclude(excludedFiles)
@@ -778,9 +778,9 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
     def syntaxifiedFiles = "${project.buildDir}/javadoc.syntaxified/${archiveName}"
     def styleSheetFile = new File("${javaDocSource}/stylesheet.css")
 
-    project.task("shdmSyntaxify00${varName}", type: Copy) {
-        dependsOn project.tasks["shdmJavaDoc${varName}"]
-        mustRunAfter project.tasks["shdmJavaDoc${varName}"]
+    project.task("rmtSyntaxify00${varName}", type: Copy) {
+        dependsOn project.tasks["rmtJavaDoc${varName}"]
+        mustRunAfter project.tasks["rmtJavaDoc${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -788,9 +788,9 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         into javaDocSource
     }
 
-    project.task("shdmSyntaxify01${varName}", type: Copy) {
-        dependsOn project.tasks["shdmSyntaxify00${varName}"]
-        mustRunAfter project.tasks["shdmSyntaxify00${varName}"]
+    project.task("rmtSyntaxify01${varName}", type: Copy) {
+        dependsOn project.tasks["rmtSyntaxify00${varName}"]
+        mustRunAfter project.tasks["rmtSyntaxify00${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -806,9 +806,9 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         }
     }
 
-    project.task("shdmSyntaxify02${varName}", type: Copy) {
-        dependsOn project.tasks["shdmSyntaxify01${varName}"]
-        mustRunAfter project.tasks["shdmSyntaxify01${varName}"]
+    project.task("rmtSyntaxify02${varName}", type: Copy) {
+        dependsOn project.tasks["rmtSyntaxify01${varName}"]
+        mustRunAfter project.tasks["rmtSyntaxify01${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -829,9 +829,9 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
     // "build" directory
     def arcPath
 
-    project.task("shdmArchiveJavaDoc00${varName}", type: Zip) {
-        dependsOn project.tasks["shdmSyntaxify02${varName}"]
-        mustRunAfter project.tasks["shdmSyntaxify02${varName}"]
+    project.task("rmtArchiveJavaDoc00${varName}", type: Zip) {
+        dependsOn project.tasks["rmtSyntaxify02${varName}"]
+        mustRunAfter project.tasks["rmtSyntaxify02${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -842,11 +842,11 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         arcPath = archivePath
     }
 
-    project.task("shdmArchiveJavaDoc${varName}", type: Copy) {
-		group "SHDM"
+    project.task("rmtArchiveJavaDoc${varName}", type: Copy) {
+		group "RMT"
 		
-        dependsOn project.tasks["shdmArchiveJavaDoc00${varName}"]
-        mustRunAfter project.tasks["shdmArchiveJavaDoc00${varName}"]
+        dependsOn project.tasks["rmtArchiveJavaDoc00${varName}"]
+        mustRunAfter project.tasks["rmtArchiveJavaDoc00${varName}"]
         
         outputs.upToDateWhen {false}
 
@@ -857,11 +857,11 @@ ext.createJavaDocWithExclude = { /* ConfigurableFileCollection */ additionalSour
         println "Destination: ${outputPath}"
     }
 
-    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmArchiveJavaDoc${varName}"]
+    project.tasks["assemble${varName}"].dependsOn project.tasks["rmtArchiveJavaDoc${varName}"]
     
     //project.tasks.matching { task ->
-    //    task.name.startsWith('shdm')
-    //}*.group = 'SHDM'
+    //    task.name.startsWith('rmt')
+    //}*.group = 'RMT'
 }
 
 /**
@@ -929,7 +929,7 @@ ext.calculateLinesOfCode = { /* Project */ project, /* BaseVariant */ variant, /
         println "\tfile: ${file.absolutePath}"
     }
 
-    project.task("shdmStepCounter01${varName}DeleteFiles", type: Delete) {
+    project.task("rmtStepCounter01${varName}DeleteFiles", type: Delete) {
         dependsOn project.tasks["compile${varName}Sources"]
         mustRunAfter project.tasks["compile${varName}Sources"]
         
@@ -950,9 +950,9 @@ ext.calculateLinesOfCode = { /* Project */ project, /* BaseVariant */ variant, /
     // Exclude any files from android.support.* package.
     // Exclude any package-info.java file.
     // Exclude any AndroidManifest.xml file.
-    project.task("shdmStepCounter02${varName}CopyFiles") {
-        dependsOn project.tasks["shdmStepCounter01${varName}DeleteFiles"]
-        mustRunAfter project.tasks["shdmStepCounter01${varName}DeleteFiles"]
+    project.task("rmtStepCounter02${varName}CopyFiles") {
+        dependsOn project.tasks["rmtStepCounter01${varName}DeleteFiles"]
+        mustRunAfter project.tasks["rmtStepCounter01${varName}DeleteFiles"]
         
         outputs.upToDateWhen {false}
 
@@ -973,9 +973,9 @@ ext.calculateLinesOfCode = { /* Project */ project, /* BaseVariant */ variant, /
     }
 
     // Copy the aggregated AndroidManifest.xml file into the temporary folder.
-    project.task("shdmStepCounter03${varName}CopyManifest", type: Copy) {
-        dependsOn project.tasks["shdmStepCounter02${varName}CopyFiles"]
-        mustRunAfter project.tasks["shdmStepCounter02${varName}CopyFiles"]
+    project.task("rmtStepCounter03${varName}CopyManifest", type: Copy) {
+        dependsOn project.tasks["rmtStepCounter02${varName}CopyFiles"]
+        mustRunAfter project.tasks["rmtStepCounter02${varName}CopyFiles"]
         
         outputs.upToDateWhen {false}
 
@@ -986,9 +986,9 @@ ext.calculateLinesOfCode = { /* Project */ project, /* BaseVariant */ variant, /
     // Call Amateras StepCounter to generate the CSV file containing the line count based on the
     // files from the temporary folder.
     // java -cp stepcounter.jar tk.stepcounter.Main -format=csv -output="${project.buildDir}/stepCounter/${output.dirName}" -encoding=UTF-8 "${project.buildDir}/stepCounter/${output.dirName}"
-    project.task("shdmStepCounter04${varName}ExecSC", type: JavaExec) {
-        dependsOn project.tasks["shdmStepCounter03${varName}CopyManifest"]
-        mustRunAfter project.tasks["shdmStepCounter03${varName}CopyManifest"]
+    project.task("rmtStepCounter04${varName}ExecSC", type: JavaExec) {
+        dependsOn project.tasks["rmtStepCounter03${varName}CopyManifest"]
+        mustRunAfter project.tasks["rmtStepCounter03${varName}CopyManifest"]
         
         outputs.upToDateWhen {false}
 
@@ -1030,18 +1030,18 @@ ext.calculateLinesOfCode = { /* Project */ project, /* BaseVariant */ variant, /
         }
     }
 
-    project.task("shdmGenerateStepCounter${varName}") {
-		group "SHDM"
+    project.task("rmtGenerateStepCounter${varName}") {
+		group "RMT"
 		
-        dependsOn project.tasks["shdmStepCounter04${varName}ExecSC"]
-        mustRunAfter project.tasks["shdmStepCounter04${varName}ExecSC"]
+        dependsOn project.tasks["rmtStepCounter04${varName}ExecSC"]
+        mustRunAfter project.tasks["rmtStepCounter04${varName}ExecSC"]
 	}
         
-    project.tasks["assemble${varName}"].dependsOn project.tasks["shdmGenerateStepCounter${varName}"]
+    project.tasks["assemble${varName}"].dependsOn project.tasks["rmtGenerateStepCounter${varName}"]
     
     //project.tasks.matching { task ->
-    //    task.name.startsWith('shdm')
-    //}*.group = 'SHDM'
+    //    task.name.startsWith('rmt')
+    //}*.group = 'RMT'
 
     println("-calculateLinesOfCode")
 }
@@ -1109,16 +1109,16 @@ afterEvaluate {
                 if(signingTasks.length > 0) {
                     Map<String, File> outputFiles = returnVal["outputFiles"]
 
-                    project.task("shdmSignApk$variantName") {
-                        group "shdm signer"
+                    project.task("rmtSignApk$variantName") {
+                        group "rmt signer"
                         dependsOn signingTasks
                     }
 
                     signingTaskCount += signingTasks.length
 
                     if(variant.buildType.zipAlignEnabled) {
-                        project.task("shdmZipAlign$variantName", type: Exec) {
-                            dependsOn project.tasks["shdmSignApk$variantName"]
+                        project.task("rmtZipAlign$variantName", type: Exec) {
+                            dependsOn project.tasks["rmtSignApk$variantName"]
 
                             commandLine "\"$zipAlignExec\"", "-v",
                                     "-f", "4",
@@ -1126,9 +1126,9 @@ afterEvaluate {
                                     "\"" + outputFiles["alignedApk"].absolutePath + "\""
                         }
 
-                        project.tasks["assemble$variantName"].dependsOn project.tasks["shdmZipAlign$variantName"]
+                        project.tasks["assemble$variantName"].dependsOn project.tasks["rmtZipAlign$variantName"]
                     } else {
-                        project.tasks["assemble$variantName"].dependsOn project.tasks["shdmSignApk$variantName"]
+                        project.tasks["assemble$variantName"].dependsOn project.tasks["rmtSignApk$variantName"]
                     }
                 }
             }
@@ -1143,16 +1143,16 @@ afterEvaluate {
             if(signingTasks.length > 0) {
                 Map<String, File> outputFiles = returnVal["outputFiles"]
 
-                project.task("shdmSignApk$variantName") {
-                    group "shdm signer"
+                project.task("rmtSignApk$variantName") {
+                    group "rmt signer"
                     dependsOn signingTasks
                 }
 
                 signingTaskCount += signingTasks.length
 
                 if(variant.buildType.zipAlignEnabled) {
-                    project.task("shdmZipAlign$variantName", type: Exec) {
-                        dependsOn project.tasks["shdmSignApk$variantName"]
+                    project.task("rmtZipAlign$variantName", type: Exec) {
+                        dependsOn project.tasks["rmtSignApk$variantName"]
 
                         commandLine "\"$zipAlignExec\"", "-v",
                                 "-f", "4",
@@ -1160,9 +1160,9 @@ afterEvaluate {
                                 "\"" + outputFiles["alignedApk"].absolutePath + "\""
                     }
 
-                    project.tasks["assemble$variantName"].dependsOn project.tasks["shdmZipAlign$variantName"]
+                    project.tasks["assemble$variantName"].dependsOn project.tasks["rmtZipAlign$variantName"]
                 } else {
-                    project.tasks["assemble$variantName"].dependsOn project.tasks["shdmSignApk$variantName"]
+                    project.tasks["assemble$variantName"].dependsOn project.tasks["rmtSignApk$variantName"]
                 }
             }
         }
@@ -1324,7 +1324,7 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
             }
 			
 			if(variantDebuggable) {
-				project.task("shdmUnsignApk$variantName", type: Zip) {
+				project.task("rmtUnsignApk$variantName", type: Zip) {
 					dependsOn dependsOnTask
 					mustRunAfter mustRunAfterTask
 
@@ -1346,7 +1346,7 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
 				// If the variant is non-debuggable, it usually means it's a
 				// release variant and so should not have a signed APK in the
 				// first place.
-				project.task("shdmUnsignApk$variantName", type: Zip) {
+				project.task("rmtUnsignApk$variantName", type: Zip) {
 					dependsOn dependsOnTask
 					mustRunAfter mustRunAfterTask
 
@@ -1368,18 +1368,18 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
 
             // (2)
             // Delete the original unsigned, signed and aligned APKs from "build\outputs\apk".
-            project.task("shdmDeleteSignedApk$variantName", type: Delete) {
-                dependsOn project.tasks["shdmUnsignApk$variantName"]
-                mustRunAfter project.tasks["shdmUnsignApk$variantName"]
+            project.task("rmtDeleteSignedApk$variantName", type: Delete) {
+                dependsOn project.tasks["rmtUnsignApk$variantName"]
+                mustRunAfter project.tasks["rmtUnsignApk$variantName"]
 
                 delete unsignedApk, signedApk, alignedApk
             }
 
             // (3)
             // Put the unsigned APK created in step (1) into "build\outputs\apk".
-            project.task("shdmCopyUnsignedApk$variantName", type: Copy) {
-                dependsOn project.tasks["shdmDeleteSignedApk$variantName"]
-                mustRunAfter project.tasks["shdmDeleteSignedApk$variantName"]
+            project.task("rmtCopyUnsignedApk$variantName", type: Copy) {
+                dependsOn project.tasks["rmtDeleteSignedApk$variantName"]
+                mustRunAfter project.tasks["rmtDeleteSignedApk$variantName"]
 
                 from "$project.buildDir/distributions/$project.name${variantName}.apk"
                 into output.outputFile.parentFile
@@ -1390,9 +1390,9 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
 
             // (4)
             // Delete the temporary APK from the distributions folder
-            project.task("shdmDeleteUnsingedApk$variantName", type: Delete) {
-                dependsOn project.tasks["shdmCopyUnsignedApk$variantName"]
-                mustRunAfter project.tasks["shdmCopyUnsignedApk$variantName"]
+            project.task("rmtDeleteUnsingedApk$variantName", type: Delete) {
+                dependsOn project.tasks["rmtCopyUnsignedApk$variantName"]
+                mustRunAfter project.tasks["rmtCopyUnsignedApk$variantName"]
 
                 delete file("$project.buildDir/distributions/$project.name${variantName}.apk")
             }
@@ -1403,13 +1403,13 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
             // so that we won't have to worry about input for multiple
             // JarSigner sessions.
             if(configCount > 0) {
-                project.task("shdmCreateJarSignerInput$variantName", type: Copy) {
-                    dependsOn project.tasks["shdmDeleteUnsingedApk$variantName"]
-                    mustRunAfter project.tasks["shdmDeleteUnsingedApk$variantName"]
+                project.task("rmtCreateJarSignerInput$variantName", type: Copy) {
+                    dependsOn project.tasks["rmtDeleteUnsingedApk$variantName"]
+                    mustRunAfter project.tasks["rmtDeleteUnsingedApk$variantName"]
 
 					doFirst {
-						println("shdmCreateJarSignerInput$variantName> [src] unsignedApk: $unsignedApk")
-						println("shdmCreateJarSignerInput$variantName> [dst] signedApk: $signedApk")
+						println("rmtCreateJarSignerInput$variantName> [src] unsignedApk: $unsignedApk")
+						println("rmtCreateJarSignerInput$variantName> [dst] signedApk: $signedApk")
 					}
 					
                     from unsignedApk.absolutePath
@@ -1418,8 +1418,8 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
                     rename unsignedApk.name, signedApk.name
 
 					doLast {
-						println("shdmCreateJarSignerInput$variantName> [src] unsignedApk: $unsignedApk")
-						println("shdmCreateJarSignerInput$variantName> [dst] signedApk: $signedApk")
+						println("rmtCreateJarSignerInput$variantName> [src] unsignedApk: $unsignedApk")
+						println("rmtCreateJarSignerInput$variantName> [dst] signedApk: $signedApk")
 					}
                 }
             }
@@ -1431,9 +1431,9 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
             if(!config.key.equals("signNonDebugBuild")) {
                 // (6)
                 // Sign the unsigned APK with the specified key using JarSigner.
-                project.task("shdmSignApkWithJarSigner$configName$variantName", type: Exec) {
-                    dependsOn project.tasks["shdmCreateJarSignerInput$variantName"]
-                    mustRunAfter project.tasks["shdmCreateJarSignerInput$variantName"]
+                project.task("rmtSignApkWithJarSigner$configName$variantName", type: Exec) {
+                    dependsOn project.tasks["rmtCreateJarSignerInput$variantName"]
+                    mustRunAfter project.tasks["rmtCreateJarSignerInput$variantName"]
 
                     def keyStore = config.value["keystore"]
                     def storePass = config.value["storePass"]
@@ -1458,7 +1458,7 @@ def createSignApkTasks(project, variant, jarSignerConfig) {
                             "\"$alias\""
                 }
 
-                signingTasks << "shdmSignApkWithJarSigner$configName$variantName"
+                signingTasks << "rmtSignApkWithJarSigner$configName$variantName"
             }
         }
     }
