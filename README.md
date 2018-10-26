@@ -72,6 +72,8 @@ createJavaDoc(variant, additionalSourceFiles, additionalClasspathFiles, excluded
 * **archiveName**: *String* - file name of the zip file to be created that will contain the generated Javadoc.
 * **outputPath**: *String* - path to where the Javadoc zip file will be placed
 
+##### Note: I'm thinking of deprecating this API.  The original purpose of this API was to generate Javadocs w/ UML diagams generated through the [yWorks UML Doclet](https://www.yworks.com/downloads#yDoc) from yWorks and have code snippets w/ syntax highlighting through [SyntaxHighlighter](http://alexgorbatchev.com/SyntaxHighlighter/) from Alex Gorbatchev.  While configuring your own [Javadoc](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.javadoc.Javadoc.html) task gives you much more flexibility, setting up yWorks was a pain.  And so, I created this helper function to ease the set up.  Unfortunately, yWorks UML Doclet is *not compatible* w/ Java 8 and newer versions.  So, I had to remove yWorks set up in this API.  In which case, you would probably be better of configuring your own [Javadoc](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.javadoc.Javadoc.html) tasks.  This API still supports SyntaxHighlighter, though.
+
 ---
 
 ## **calculateLinesOfCode**
