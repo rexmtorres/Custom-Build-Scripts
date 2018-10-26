@@ -499,8 +499,6 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
                         it.withWriter { writer -> writer << html }
                     }
                 }
-
-                println "\n\nJavadoc created in: $DESTINATION_DIR\n\n"
             }
 		}
 
