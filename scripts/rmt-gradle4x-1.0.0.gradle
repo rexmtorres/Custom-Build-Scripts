@@ -483,6 +483,23 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
                 options.optionFiles << optionsFile
                 options.memberLevel = javadocMemberLevel
             }
+
+            doLast {
+                // Force Android API reference links to be opened in a new window/tab by adding
+                // a "target="_blank" attribute to the <a> html tags.
+                // Without the attribute, the Android API webpage will load inside the Javadoc
+                // frame but will fail (not allowed by browsers?  or the Android website itself
+                // does not allow to be opened inside a frame?).
+                destinationDir.eachFileRecurse(groovy.io.FileType.FILES) {
+                    if (it.name.matches(/.+\.html?$/)) {
+                        def html = it.text.replaceAll(/<a(\s+href\s*=\s*["']$androidApiRef[^"']*["'])/,
+                                /<a target="_blank" $1/)
+                        it.withWriter { writer -> writer << html }
+                    }
+                }
+
+                println "\n\nJavadoc created in: $DESTINATION_DIR\n\n"
+            }
 		}
 
 		def javaDocSource = tasks["rmtJavaDoc${varName}"].destinationDir // "${project.buildDir}/javadoc/${archiveName}"
