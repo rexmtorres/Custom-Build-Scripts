@@ -410,6 +410,8 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
 
 		// Generates the JavaDoc with UML using yDoc doclet
 		task("rmtJavaDoc${varName}", type: Javadoc) {
+            def androidApiRef = "http://d.android.com/reference"
+
 			dependsOn tasks["rmtExcludeRes${varName}"]
 			mustRunAfter tasks["rmtExcludeRes${varName}"]
 			
@@ -458,7 +460,7 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
                 }
 
                 options {
-                    linksOffline("http://d.android.com/reference", "${android.sdkDirectory}/docs/reference")
+                    linksOffline(androidApiRef, "${android.sdkDirectory}/docs/reference")
                 }
 
                 File optionsFile = file("${project.rootProject.rootDir}/javadoc.options")
@@ -492,7 +494,7 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
                 // does not allow to be opened inside a frame?).
                 destinationDir.eachFileRecurse(groovy.io.FileType.FILES) {
                     if (it.name.matches(/.+\.html?$/)) {
-                        def html = it.text.replaceAll(/<a(\s+href\s*=\s*["']http://d.android.com/reference[^"']*["'])/,
+                        def html = it.text.replaceAll(/<a(\s+href\s*=\s*["']$androidApiRef[^"']*["'])/,
                                 /<a target="_blank" $1/)
                         it.withWriter { writer -> writer << html }
                     }
