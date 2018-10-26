@@ -492,7 +492,7 @@ ext.createJavaDoc = { /* BaseVariant */ variant,
                 // does not allow to be opened inside a frame?).
                 destinationDir.eachFileRecurse(groovy.io.FileType.FILES) {
                     if (it.name.matches(/.+\.html?$/)) {
-                        def html = it.text.replaceAll(/<a(\s+href\s*=\s*["']$androidApiRef[^"']*["'])/,
+                        def html = it.text.replaceAll(/<a(\s+href\s*=\s*["']http://d.android.com/reference[^"']*["'])/,
                                 /<a target="_blank" $1/)
                         it.withWriter { writer -> writer << html }
                     }
