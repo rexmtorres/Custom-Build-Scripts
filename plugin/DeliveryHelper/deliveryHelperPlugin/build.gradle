@@ -1,0 +1,35 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'groovy'
+}
+
+gradlePlugin {
+    plugins {
+        simplePlugin {
+            id = 'com.rexmtorres.delivery-helper'
+            implementationClass = 'com.rexmtorres.deliveryhelper.DeliveryPlugin'
+        }
+    }
+}
+
+dependencies {
+    compile localGroovy()
+    compile "com.android.tools.build:gradle:$androidGradlePluginVersion"
+}
+
+group = 'com.rexmtorres'
+version = '1.0-SNAPSHOT'
+
+apply plugin: 'maven'
+
+repositories {
+    mavenCentral()
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: uri('../repo'))
+        }
+    }
+}
