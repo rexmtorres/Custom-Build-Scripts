@@ -36,14 +36,20 @@ android {
     }
 
     applicationVariants.all { appVariant ->
-        deliveries {
-            "${appVariant.name}" {
+        delivery {
+            app {
                 variant = appVariant
-                outputFile = file(".")
+                apkFile = file(appVariant.outputs.first().outputFile)
+                //unsignedApkFile = file(".")
+                //proguardMapDir = file(".")
+            }
 
-                javaDoc {
-                    title = "hello"
-                }
+            javadoc {
+                variant = appVariant
+                title = appVariant.name
+                javadocMemberLevel = JavadocMemberLevel.PROTECTED
+                excludedFiles = ["a.b", "c.d"]
+                outputFile = file(appVariant.outputs.first().outputFile)
             }
         }
     }
