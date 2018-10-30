@@ -1,1 +1,1 @@
-include ':app', ':deliveryHelperPlugin'
+include ':app', ':deliveryHelperPlugin', ':mylibrary'
