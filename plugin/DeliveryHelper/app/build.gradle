@@ -10,7 +10,6 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
-
         classpath group: "com.rexmtorres", name: "deliveryHelperPlugin", version: "1.0-SNAPSHOT"
     }
 }
@@ -39,8 +38,8 @@ android {
         delivery {
             app {
                 variant = appVariant
-                apkFile = file(appVariant.outputs.first().outputFile)
-                //unsignedApkFile = file(".")
+                apkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp.apk")
+                unsignedApkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp-unsigned.apk")
                 //proguardMapDir = file(".")
             }
 
@@ -49,7 +48,7 @@ android {
                 title = appVariant.name
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludedFiles = ["a.b", "c.d"]
-                outputFile = file(appVariant.outputs.first().outputFile)
+                outputFile = file("${rootProject.buildDir}/MyApp/Doc/${variant.dirName}/MyApp-API.zip")
             }
         }
     }

@@ -7,6 +7,7 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.tasks.bundling.Zip
 import org.gradle.external.javadoc.JavadocMemberLevel
 
 class JavaDocSettings {
@@ -68,13 +69,11 @@ class LibraryDelivery {
 }
 
 class DeliveryExtension {
-    static Project project
+    protected static Project project
 
-    private BaseVariant[] variants = []
-
-    private ApplicationDelivery[] appDeliveries = []
-    private LibraryDelivery[] libDeliveries = []
-    private JavaDocSettings[] javaDocSettings = []
+    protected ApplicationDelivery[] appDeliveries = []
+    protected LibraryDelivery[] libDeliveries = []
+    protected JavaDocSettings[] javaDocSettings = []
 
     void app(final Closure appClosure) {
         def app = new ApplicationDelivery()
@@ -84,15 +83,11 @@ class DeliveryExtension {
             throw new GradleException("app.variant cannot be null!")
         }
 
-        if (app.apkFile == null) {
-            throw new GradleException("app.apkFile cannot be null!")
+        if ((app.apkFile == null) && (app.unsignedApkFile == null)) {
+            throw new GradleException("app.apkFile and app.unsignedApkFile cannot be both null!  At least one of them must be defined")
         }
 
         appDeliveries += app
-
-        if (!variants.contains(app.variant)) {
-            variants += app.variant
-        }
     }
 
     void lib(final Closure libClosure) {
@@ -103,15 +98,11 @@ class DeliveryExtension {
             throw new GradleException("lib.variant cannot be null!")
         }
 
-        if (lib.aarFile == null) {
-            throw new GradleException("lib.aarFile cannot be null!")
+        if ((lib.aarFile == null) && (lib.jarFile == null)) {
+            throw new GradleException("lib.aarFile and lib.jarFile cannot be both null!  At least one of them must be defined")
         }
 
         libDeliveries += lib
-
-        if (!variants.contains(lib.variant)) {
-            variants += lib.variant
-        }
     }
 
     void javadoc(final Closure javadocClosure) {
@@ -127,10 +118,6 @@ class DeliveryExtension {
         }
 
         javaDocSettings += javadoc
-
-        if (!variants.contains(lib.variant)) {
-            variants += lib.variant
-        }
     }
 
     @Override
@@ -149,18 +136,137 @@ class DeliveryExtension {
 }
 
 class DeliveryPlugin implements Plugin<Project> {
+    private def groupRmt = "rmt"
+    private def groupRmtDelivery = "rmtDelivery"
+
     private def resVersion = "v1"
     private def binZip = "/res/bin_${resVersion}.zip"
-    private
-    def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/com.rexmtorres.deliveryhelper/${resVersion}"
+    private def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/com.rexmtorres.deliveryhelper/${resVersion}"
 
     void apply(Project project) {
         DeliveryExtension.project = project
 
         def delivery = project.extensions.create("delivery", DeliveryExtension)
 
+        project.afterEvaluate {
+            setUpAppTasks(delivery.appDeliveries, project)
+            setUpLibTasks(delivery.libDeliveries, project)
+        }
+
         project.task("createDelivery") {
             doLast {
+            }
+        }
+    }
+
+    private void setUpAppTasks(final ApplicationDelivery[] appDeliveries, final Project project) {
+        def apkTask = project.task("rmtExportApk") {
+            group groupRmt
+        }
+
+        println "appDeliveries = $appDeliveries"
+
+        appDeliveries.each { app ->
+            def variant = app.variant
+
+            def srcApk = variant.outputs.first().outputFile
+            def destApk = app.apkFile
+            def destUnsignedApk = app.unsignedApkFile
+
+            def varNameCap = variant.name.capitalize()
+
+            def taskNameAssemble = "assemble${varNameCap}"
+
+            if (destApk != null) {
+                def taskNameApk = "rmtExport${varNameCap}Apk"
+
+                apkTask.dependsOn project.task(taskNameApk) {
+                    dependsOn project.tasks[taskNameAssemble]
+                    group groupRmt
+
+                    inputs.file(srcApk)
+                    outputs.file(destApk)
+
+                    doLast {
+                        project.copy {
+                            from(srcApk)
+                            into(destApk.parentFile)
+                            rename srcApk.name, destApk.name
+                        }
+                    }
+                }
+            }
+
+            if (destUnsignedApk != null) {
+                def taskNameUnsignApk = "rmtUnsign${varNameCap}Apk"
+
+                def unsignTask = project.task(taskNameUnsignApk, type: Zip) {
+                    dependsOn project.tasks[taskNameAssemble]
+
+                    archiveName "${variant.dirName}/${srcApk.name}"
+                    from project.zipTree(srcApk)
+                    exclude "/META-INF/**"
+                }
+
+                def taskNameUnsignedApk = "rmtExport${varNameCap}UnsignedApk"
+
+                apkTask.dependsOn project.task(taskNameUnsignedApk) {
+                    dependsOn unsignTask
+                    group groupRmt
+
+                    inputs.file(srcApk)
+                    outputs.file(destUnsignedApk)
+
+                    doLast {
+                        project.copy {
+                            from(unsignTask.outputs.files.first())
+                            into(destUnsignedApk.parentFile)
+                            rename srcApk.name, destUnsignedApk.name
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void setUpLibTasks(final LibraryDelivery[] libDeliveries, final Project project) {
+        def aarTask = project.task("rmtExportAar") {
+            group groupRmt
+        }
+
+        def jarTask = project.task("rmtExportJar") {
+            group groupRmt
+        }
+
+        libDeliveries.each { lib ->
+            def variant = lib.variant
+
+            def srcAar = variant.outputs.first().outputFile
+            def destAar = lib.aarFile
+            def destJar = lib.jarFile
+
+            def varName = variant.name
+
+            def taskNameAssemble = "assemble${varName.capitalize()}"
+            def taskNameAar = "rmtExport${varName.capitalize()}Aar"
+            def taskNameJar = "rmtExport${varName.capitalize()}Jar"
+
+            if (destAar != null) {
+                aarTask.dependsOn project.task(taskNameAar) {
+                    dependsOn project.tasks[taskNameAssemble]
+                    group groupRmt
+
+                    inputs.file(srcAar)
+                    outputs.file(destAar)
+
+                    doLast {
+                        project.copy {
+                            from(srcAar)
+                            into(destAar.parentFile)
+                            rename srcAar.name, destAar.name
+                        }
+                    }
+                }
             }
         }
     }
