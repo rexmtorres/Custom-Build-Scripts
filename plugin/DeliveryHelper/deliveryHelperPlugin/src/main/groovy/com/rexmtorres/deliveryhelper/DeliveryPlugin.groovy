@@ -160,6 +160,10 @@ class DeliveryPlugin implements Plugin<Project> {
     }
 
     private void setUpAppTasks(final ApplicationDelivery[] appDeliveries, final Project project) {
+        if (appDeliveries.size() < 1) {
+            return
+        }
+
         def apkTask = project.task("rmtExportApk") {
             group groupRmt
         }
@@ -183,6 +187,7 @@ class DeliveryPlugin implements Plugin<Project> {
                 apkTask.dependsOn project.task(taskNameApk) {
                     dependsOn project.tasks[taskNameAssemble]
                     group groupRmt
+                    description "Exports ${srcApk} to ${destApk}"
 
                     inputs.file(srcApk)
                     outputs.file(destApk)
@@ -213,6 +218,7 @@ class DeliveryPlugin implements Plugin<Project> {
                 apkTask.dependsOn project.task(taskNameUnsignedApk) {
                     dependsOn unsignTask
                     group groupRmt
+                    description "Unsigns ${srcApk} and exports it to ${destUnsignedApk}"
 
                     inputs.file(srcApk)
                     outputs.file(destUnsignedApk)
@@ -230,6 +236,10 @@ class DeliveryPlugin implements Plugin<Project> {
     }
 
     private void setUpLibTasks(final LibraryDelivery[] libDeliveries, final Project project) {
+        if (libDeliveries.size() < 1) {
+            return
+        }
+
         def aarTask = project.task("rmtExportAar") {
             group groupRmt
         }
@@ -238,6 +248,8 @@ class DeliveryPlugin implements Plugin<Project> {
             group groupRmt
         }
 
+        println "libDeliveries = $libDeliveries"
+
         libDeliveries.each { lib ->
             def variant = lib.variant
 
@@ -245,16 +257,17 @@ class DeliveryPlugin implements Plugin<Project> {
             def destAar = lib.aarFile
             def destJar = lib.jarFile
 
-            def varName = variant.name
+            def varNameCap = variant.name.capitalize()
 
-            def taskNameAssemble = "assemble${varName.capitalize()}"
-            def taskNameAar = "rmtExport${varName.capitalize()}Aar"
-            def taskNameJar = "rmtExport${varName.capitalize()}Jar"
+            def taskNameAssemble = "assemble${varNameCap}"
 
             if (destAar != null) {
+                def taskNameAar = "rmtExport${varNameCap}Aar"
+
                 aarTask.dependsOn project.task(taskNameAar) {
                     dependsOn project.tasks[taskNameAssemble]
                     group groupRmt
+                    description "Exports ${srcAar} to ${destAar}"
 
                     inputs.file(srcAar)
                     outputs.file(destAar)
@@ -264,6 +277,28 @@ class DeliveryPlugin implements Plugin<Project> {
                             from(srcAar)
                             into(destAar.parentFile)
                             rename srcAar.name, destAar.name
+                        }
+                    }
+                }
+            }
+
+            if (destJar != null) {
+                def taskNameJar = "rmtExport${varNameCap}Jar"
+
+                jarTask.dependsOn project.task(taskNameJar) {
+                    dependsOn project.tasks[taskNameAssemble]
+                    group groupRmt
+                    description "Extracts the JAR file inside ${srcAar} and exports it to ${destJar}"
+
+                    inputs.file(srcAar)
+                    outputs.file(destJar)
+
+                    doLast {
+                        project.copy {
+                            from project.zipTree(srcAar)
+                            into(destJar.parentFile)
+                            include "classes.jar"
+                            rename "classes.jar", destJar.name
                         }
                     }
                 }
