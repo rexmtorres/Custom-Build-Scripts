@@ -10,17 +10,15 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
-        classpath group: "com.rexmtorres", name: "deliveryHelperPlugin", version: "1.0-SNAPSHOT"
+        classpath group: "com.rexmtorres", name: "packageHelperPlugin", version: "1.0-SNAPSHOT"
     }
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'com.rexmtorres.delivery-helper'
+apply plugin: 'com.rexmtorres.package-helper'
 
 android {
     compileSdkVersion 28
-
-
 
     defaultConfig {
         minSdkVersion 16
@@ -40,7 +38,7 @@ android {
     }
 
     libraryVariants.all { libVariant ->
-        delivery {
+        packageIt {
             lib {
                 variant = libVariant
                 aarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib.aar")

@@ -6,8 +6,8 @@ plugins {
 gradlePlugin {
     plugins {
         simplePlugin {
-            id = 'com.rexmtorres.delivery-helper'
-            implementationClass = 'com.rexmtorres.deliveryhelper.DeliveryPlugin'
+            id = 'com.rexmtorres.package-helper'
+            implementationClass = 'com.rexmtorres.packagehelper.PackagePlugin'
         }
     }
 }
