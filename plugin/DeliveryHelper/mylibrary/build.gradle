@@ -51,7 +51,7 @@ android {
                 title = libVariant.name
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludedFiles = ["a.b", "c.d"]
-                outputFile = file("${rootProject.buildDir}/MyApp/Doc/${variant.dirName}/MyApp-API.zip")
+                outputZipFile = file("${rootProject.buildDir}/MyApp/Doc/${variant.dirName}/MyApp-API.zip")
             }
         }
     }

@@ -9,24 +9,23 @@ import org.gradle.external.javadoc.JavadocMemberLevel
  */
 class JavaDocSettings {
     BaseVariant variant
-
+    File outputZipFile
     String title
     JavadocMemberLevel javadocMemberLevel
     ConfigurableFileCollection additionalSourceFiles
     ConfigurableFileCollection additionalClasspathFiles
     List<String> excludedFiles
-    File outputFile
 
     @Override
     String toString() {
         return """|doc${variant.name.capitalize()} {
                   |    variant = $variant
+                  |    outputZipFile = $outputZipFile
                   |    title = $title
                   |    javadocMemberLevel = $javadocMemberLevel
                   |    additionalSourceFiles = $additionalSourceFiles
                   |    additionalClasspathFiles = $additionalClasspathFiles
                   |    excludedFiles = $excludedFiles
-                  |    outputFile = $outputFile
                   |}""".stripMargin()
     }
 }
