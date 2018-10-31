@@ -39,6 +39,8 @@ android {
 
     libraryVariants.all { libVariant ->
         packageIt {
+            debug = true
+
             lib {
                 variant = libVariant
                 aarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib.aar")

@@ -36,6 +36,8 @@ android {
 
     applicationVariants.all { appVariant ->
         packageIt {
+            debug = true
+
             app {
                 variant = appVariant
                 apkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp.apk")
@@ -45,7 +47,8 @@ android {
 
             stepCounter {
                 variant = appVariant
-                outputCsvFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/StepCounter.csv")
+                outputCsvFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/Step Counter.csv")
+                excludes = ["**/R.java", "**/*.json"]
             }
 
             javadoc {

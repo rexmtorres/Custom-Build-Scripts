@@ -8,6 +8,7 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.internal.os.OperatingSystem
 
 /**
  * Plugin class for processing {@link PackageExtension}.
@@ -15,13 +16,13 @@ import org.gradle.api.tasks.javadoc.Javadoc
  * @author Rex M. Torres
  */
 class PackagePlugin implements Plugin<Project> {
-    private static def groupPackageHelperMain = "packageHelper"
-    private static def groupPackageHelperOthers = "phOthers"
+    private final static def groupPackageHelperMain = "packageHelper"
+    private final static def groupPackageHelperOthers = "phOthers"
 
-    private static def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/${PackagePlugin.canonicalName}"
+    private final static def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/${PackagePlugin.canonicalName}"
 
-    private static def resourceStepCounter = "stepCounter_v3.0.4"
-    private static def resourceSyntaxHighlighter = "syntaxHighlighter_v3.0.83"
+    private final static def resourceStepCounter = "stepCounter_v3.0.4"
+    private final static def resourceSyntaxHighlighter = "syntaxHighlighter_v3.0.83"
 
     private static class StepCounterExecInfo {
         static def jar = "stepcounter-3.0.4-jar-with-dependencies.jar"
@@ -29,8 +30,12 @@ class PackagePlugin implements Plugin<Project> {
         static def classpath = new File("${cacheLoc}/${resourceStepCounter}/${jar}")
     }
 
+    private boolean debug
+    private Project targetProject
+
     void apply(Project project) {
         PackageExtension.project = project
+        targetProject = project
 
         prepareResource(resourceStepCounter, project)
         prepareResource(resourceSyntaxHighlighter, project)
@@ -38,6 +43,9 @@ class PackagePlugin implements Plugin<Project> {
         def delivery = project.extensions.create(PackageExtension.extensionName, PackageExtension)
 
         project.afterEvaluate {
+            debug = delivery.debug
+
+            log("PackagePlugin.apply> Creating task 'createPackage'")
             def packageTask = project.task("createPackage") {
                 group groupPackageHelperMain
             }
@@ -51,15 +59,17 @@ class PackagePlugin implements Plugin<Project> {
 
     private void setUpAppTasks(final ApplicationPackage[] appPackages, final Project project, final Task dependent) {
         if (appPackages.size() < 1) {
+            log("PackagePlugin.setUpAppTasks> No ApplicationPackages found.")
             return
         }
 
+        log("PackagePlugin.setUpAppTasks> libPackages = $appPackages")
+
+        log("PackagePlugin.setUpAppTasks> Creating task 'phExportApp'")
         def appTask = project.task("phExportApp") {
             group groupPackageHelperMain
             description "Exports the generated APK(s) into the specified location."
         }
-
-        println "appPackages = $appPackages"
 
         appPackages.each { app ->
             def variant = app.variant
@@ -74,7 +84,10 @@ class PackagePlugin implements Plugin<Project> {
 
             //region Task for exporting the APK from <buildDir>/outputs/apk/<build> to the specified location
             if (destApk != null) {
+                log("PackagePlugin.setUpAppTasks> Creating task 'phExport${varNameCap}Apk'")
                 appTask.dependsOn project.task("phExport${varNameCap}Apk") {
+                    def taskName = name
+
                     dependsOn project.tasks[taskNameAssemble]
                     group groupPackageHelperOthers
                     description "Exports ${srcApk} to ${destApk}"
@@ -84,6 +97,8 @@ class PackagePlugin implements Plugin<Project> {
 
                     doLast {
                         project.copy {
+                            log("$taskName> Copying $srcApk to $destApk")
+
                             from(srcApk)
                             into(destApk.parentFile)
                             rename srcApk.name, destApk.name
@@ -95,15 +110,25 @@ class PackagePlugin implements Plugin<Project> {
 
             //region Task for usigning then exporting the APK from <buildDir>/outputs/apk/<build> to the specified location
             if (destUnsignedApk != null) {
+                log("PackagePlugin.setUpAppTasks> Creating task 'phUnsign${varNameCap}Apk'")
                 def unsignTask = project.task("phUnsign${varNameCap}Apk", type: Zip) {
+                    def taskName = name
+
                     dependsOn project.tasks[taskNameAssemble]
 
                     archiveName "${variant.dirName}/${srcApk.name}"
                     from project.zipTree(srcApk)
                     exclude "/META-INF/**"
+
+                    doLast {
+                        log("$taskName> Deleted META-INF/** $archiveName")
+                    }
                 }
 
+                log("PackagePlugin.setUpAppTasks> Creating task 'phExport${varNameCap}UnsignedApk'")
                 appTask.dependsOn project.task("phExport${varNameCap}UnsignedApk") {
+                    def taskName = name
+
                     dependsOn unsignTask
                     group groupPackageHelperOthers
                     description "Unsigns ${srcApk} and exports it to ${destUnsignedApk}"
@@ -113,6 +138,8 @@ class PackagePlugin implements Plugin<Project> {
 
                     doLast {
                         project.copy {
+                            log("$taskName> Copying ${unsignTask.outputs.files.first()} to $destUnsignedApk")
+
                             from(unsignTask.outputs.files.first())
                             into(destUnsignedApk.parentFile)
                             rename srcApk.name, destUnsignedApk.name
@@ -130,15 +157,17 @@ class PackagePlugin implements Plugin<Project> {
 
     private void setUpLibTasks(final LibraryPackage[] libPackages, final Project project, final Task dependent) {
         if (libPackages.size() < 1) {
+            log("PackagePlugin.setUpLibTasks> No LibraryPackages found.")
             return
         }
 
+        log("PackagePlugin.setUpLibTasks> libPackages = $libPackages")
+
+        log("PackagePlugin.setUpLibTasks> Creating task 'phExportLib'")
         def libTask = project.task("phExportLib") {
             group groupPackageHelperMain
             description "Exports the generated AAR(s) and/or JAR(s) into the specified location."
         }
-
-        println "libPackages = $libPackages"
 
         libPackages.each { lib ->
             def variant = lib.variant
@@ -152,7 +181,10 @@ class PackagePlugin implements Plugin<Project> {
             def taskNameAssemble = "assemble${varNameCap}"
 
             if (destAar != null) {
+                log("PackagePlugin.setUpLibTasks> Creating task 'phExport${varNameCap}Aar'")
                 libTask.dependsOn project.task("phExport${varNameCap}Aar") {
+                    def taskName = name
+
                     dependsOn project.tasks[taskNameAssemble]
                     group groupPackageHelperOthers
                     description "Exports ${srcAar} to ${destAar}"
@@ -162,6 +194,8 @@ class PackagePlugin implements Plugin<Project> {
 
                     doLast {
                         project.copy {
+                            log("$taskName> Copying $srcAar to $destAar")
+
                             from(srcAar)
                             into(destAar.parentFile)
                             rename srcAar.name, destAar.name
@@ -171,7 +205,10 @@ class PackagePlugin implements Plugin<Project> {
             }
 
             if (destJar != null) {
+                log("PackagePlugin.setUpLibTasks> Creating task 'phExport${varNameCap}Jar'")
                 libTask.dependsOn project.task("phExport${varNameCap}Jar") {
+                    def taskName = name
+
                     dependsOn project.tasks[taskNameAssemble]
                     group groupPackageHelperOthers
                     description "Extracts the JAR file inside ${srcAar} and exports it to ${destJar}"
@@ -181,6 +218,8 @@ class PackagePlugin implements Plugin<Project> {
 
                     doLast {
                         project.copy {
+                            log("$taskName> Extracting $srcAar/classes.jar as $destJar")
+
                             from project.zipTree(srcAar)
                             into(destJar.parentFile)
                             include "classes.jar"
@@ -198,36 +237,52 @@ class PackagePlugin implements Plugin<Project> {
 
     private void setUpStepCounterTasks(final StepCounterSettings[] settings, final Project project, final Task dependent) {
         if (settings.size() < 1) {
+            log("PackagePlugin.setUpStepCounterTasks> No StepCounterSettings found.")
             return
         }
 
+        log("PackagePlugin.setUpStepCounterTasks> settings = $settings")
+
+        log("PackagePlugin.setUpStepCounterTasks> Creating task 'phGenerateStepCounter'")
         def scTask = project.task("phGenerateStepCounter") {
             group groupPackageHelperMain
             description "Generates Amateras StepCounter profile for the specified build."
         }
 
-        println "settings = $settings"
-
         settings.each { setting ->
             def variant = setting.variant
             def varNameCap = variant.name.capitalize()
 
-            def inputFiles = variant.getJavaCompiler().inputs.files
+            def inputFiles = variant.getJavaCompiler().inputs.files.filter { !it.name.endsWith(".jar") }
             def outputFile = setting.outputCsvFile
 
             def stepCounterBuild = new File("${project.buildDir}/stepCounter/${variant.dirName}/files")
 
+            log("PackagePlugin.setUpStepCounterTasks> Creating task 'phDeleteSc${varNameCap}Files'")
             def taskDelete = project.task("phDeleteSc${varNameCap}Files") {
+                def taskName = name
+                def tempCsv = new File(stepCounterBuild.parentFile, outputFile.name)
+
                 dependsOn project.tasks["assemble${varNameCap}"]
 
                 inputs.files(inputFiles)
+                outputs.file(tempCsv)
+                outputs.dir(stepCounterBuild)
 
                 doLast {
+                    log("$taskName> Deleting $stepCounterBuild")
+
                     stepCounterBuild.deleteDir()
+                    stepCounterBuild.mkdirs()
+
+                    tempCsv.createNewFile()
                 }
             }
 
+            log("PackagePlugin.setUpStepCounterTasks> Creating task 'phCopySc${varNameCap}Files'")
             def taskCopy = project.task("phCopySc${varNameCap}Files") {
+                def taskName = name
+
                 dependsOn taskDelete
 
                 def sources = project.files(inputFiles)
@@ -240,11 +295,13 @@ class PackagePlugin implements Plugin<Project> {
                 outputs.dir(stepCounterBuild)
 
                 doLast {
-                    sources.each { file ->
+                    sources.eachWithIndex { file, index ->
                         if (file.exists()) {
                             project.copy {
+                                log("$taskName> Copying $file to $stepCounterBuild")
+
                                 from file
-                                into new File(stepCounterBuild, file.name)
+                                into new File(stepCounterBuild, "_$index")
 
                                 include setting.includes
                                 exclude setting.excludes
@@ -254,7 +311,10 @@ class PackagePlugin implements Plugin<Project> {
                 }
             }
 
+            log("PackagePlugin.setUpStepCounterTasks> Creating task 'phExecuteScFor${varNameCap}'")
             def taskStepCounter = project.task("phExecuteScFor${varNameCap}", type: JavaExec) {
+                def taskName = name
+
                 dependsOn taskCopy
 
                 def tempCsv = new File(stepCounterBuild.parentFile, outputFile.name)
@@ -266,13 +326,28 @@ class PackagePlugin implements Plugin<Project> {
                 main = StepCounterExecInfo.main
                 args = [
                         "-format=csv",
-                        "-output=\"${tempCsv.absolutePath}\"",
+                        "-output=${normalizePath(tempCsv.absolutePath)}",
                         "-encoding=UTF-8",
-                        "\"${stepCounterBuild.absolutePath}\""
+                        "${normalizePath(stepCounterBuild.absolutePath)}"
                 ]
+
+                doFirst {
+                    log("$taskName> input = $stepCounterBuild")
+                    log("$taskName> output = $tempCsv")
+                    log("$taskName> classpath = $classpath")
+                    log("$taskName> main = $main")
+                    log("$taskName> args = $args")
+                }
+
+                doLast {
+                    log("$taskName> Generated StepCounter report $tempCsv")
+                }
             }
 
+            log("PackagePlugin.setUpStepCounterTasks> Creating task 'phGenerateStepCounterFor${varNameCap}'")
             scTask.dependsOn project.task("phGenerateStepCounterFor${varNameCap}") {
+                def taskName = name
+
                 dependsOn taskStepCounter
                 group groupPackageHelperOthers
 
@@ -287,6 +362,8 @@ class PackagePlugin implements Plugin<Project> {
                     csvContent = csvContent.replaceAll("\n", "\r\n")
 
                     def lines = csvContent.split("\n").length + 1
+
+                    log("$taskName> Inserting headers to $outputFile")
 
                     outputFile.withWriter { writer ->
                         writer.write("\ufeff" +                                     // Force BOM header to display Japanese chars correctly in Excel
@@ -309,15 +386,17 @@ class PackagePlugin implements Plugin<Project> {
 
     private void setUpJavaDocTasks(final JavaDocSettings[] settings, final Project project, final Task dependent) {
         if (settings.size() < 1) {
+            log("PackagePlugin.setUpJavaDocTasks> No JavaDocSettings found.")
             return
         }
 
+        log("PackagePlugin.setUpJavaDocTasks> settings = $settings")
+
+        log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadoc'")
         def javadocTask = project.task("phGenerateJavadoc") {
             group groupPackageHelperMain
             description "Generates Javadoc for the specified build."
         }
-
-        println "settings = $settings"
 
         def androidApiRef = "http://d.android.com/reference"
         def androidBoothClasspath = project.android.getBootClasspath()
@@ -344,7 +423,10 @@ class PackagePlugin implements Plugin<Project> {
                 classpathFiles += additionalClasspathFiles
             }
 
+            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocFilesFor${varNameCap}'")
             def taskJavadoc = project.task("phGenerateJavadocFilesFor${varNameCap}", type: Javadoc) {
+                def taskName = name
+
                 dependsOn project.tasks["assemble${varNameCap}"]
 
                 def tempJavadocDir = new File("${project.buildDir}/phjavadoc/${variant.dirName}")
@@ -359,11 +441,11 @@ class PackagePlugin implements Plugin<Project> {
                 destinationDir tempJavadocDir
 
                 sourceFiles.each {
-                    println "source: $it"
+                    log("$taskName> source: $it")
                 }
 
                 classpathFiles.each {
-                    println "class: $it"
+                    log("$taskName> class: $it")
                 }
 
                 if (setting.javadocTitle != null) {
@@ -396,6 +478,8 @@ class PackagePlugin implements Plugin<Project> {
                     // does not allow to be opened inside a frame?).
                     destinationDir.eachFileRecurse(FileType.FILES) {
                         if (it.name.matches(/.+\.html?$/)) {
+                            log("$taskName> Updating Android API links for $it")
+
                             def html = it.text.replaceAll(/<a(\s+href\s*=\s*["']$androidApiRef[^"']*["'])/,
                                     /<a target="_blank" $1/)
                             it.withWriter { writer -> writer << html }
@@ -406,7 +490,10 @@ class PackagePlugin implements Plugin<Project> {
 
             def syntaxHighlighterRes = new File("${cacheLoc}/${resourceSyntaxHighlighter}")
 
+            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phApplySyntaxHighlighterFor${varNameCap}'")
             def taskSyntaxHighlighter = project.task("phApplySyntaxHighlighterFor${varNameCap}") {
+                def taskName = name
+
                 dependsOn taskJavadoc
 
                 def tempJavadocDir = taskJavadoc.destinationDir
@@ -420,6 +507,8 @@ class PackagePlugin implements Plugin<Project> {
                 doLast {
                     // Copy the SyntaxHighlighter resources into the Javadoc dir.
                     project.copy {
+                        log("$taskName> Copying SyntaxHighlighter resources to $tempJavadocDir")
+
                         from syntaxHighlighterRes
                         into tempJavadocDir
                     }
@@ -427,6 +516,8 @@ class PackagePlugin implements Plugin<Project> {
                     // Apply SyntaxHighlighter to the HTML files.
                     tempJavadocDir.eachFileRecurse(FileType.FILES) {
                         if (it.name.matches(/.+\.html?$/)) {
+                            log("$taskName> Applying SyntaxHighlighter to $it")
+
                             def html = it.text.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
                                     "<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\$3/js/shBrushJava.js\"></script>")
                                 .replaceAll("</html>", "<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
@@ -437,6 +528,8 @@ class PackagePlugin implements Plugin<Project> {
 
                     // Apply SyntaxHighlighter to the stylesheet.
                     if(styleSheetFile.exists()) {
+                        log("$taskName> Applying SyntaxHighlighter to $styleSheetFile")
+
                         def styleSheet = styleSheetFile.getText("UTF-8")
                         styleSheetFile.write("@import url(\"css/shCore.css\");\r\n" +
                                 "@import url(\"css/shTheme${syntaxTheme}.css\");\r\n\r\n${styleSheet}")
@@ -446,7 +539,10 @@ class PackagePlugin implements Plugin<Project> {
 
             def outputFile = setting.outputZipFile
 
+            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocFor${varNameCap}'")
             javadocTask.dependsOn project.task("phGenerateJavadocFor${varNameCap}", type: Zip) {
+                def taskName = name
+
                 dependsOn taskSyntaxHighlighter
                 group groupPackageHelperOthers
                 description "Generates Javadoc for ${varNameCap}."
@@ -461,6 +557,8 @@ class PackagePlugin implements Plugin<Project> {
                 into "API Guide"
 
                 doLast {
+                    log("$taskName> Copying $archivePath to $outputFile")
+
                     project.copy {
                         from archivePath
                         into outputFile.parentFile
@@ -483,19 +581,27 @@ class PackagePlugin implements Plugin<Project> {
             def srcProguardMapDir = new File("${project.buildDir}/outputs/mapping/${variant.dirName}")
 
             if (srcProguardMapDir.exists()) {
+                log("PackagePlugin.setUpJavaDocTasks> Creating task 'phExport${varNameCap}ProguardMap'")
                 dependent.dependsOn project.task("phExport${varNameCap}ProguardMap", type: Copy) {
+                    def taskName = name
+
                     dependsOn project.tasks["assemble${varNameCap}"]
                     group groupPackageHelperOthers
                     description "Exports ${srcProguardMapDir} into ${destProguardMapDir}."
 
                     doFirst {
                         if (destProguardMapDir.exists()) {
+                            log("$taskName> Deleting $destProguardMapDir")
                             destProguardMapDir.deleteDir()
                         }
                     }
 
                     from(srcProguardMapDir)
                     into(destProguardMapDir)
+
+                    doLast {
+                        log("$taskName> Copied $srcProguardMapDir to $destProguardMapDir")
+                    }
                 }
             }
         }
@@ -525,6 +631,24 @@ class PackagePlugin implements Plugin<Project> {
             }
 
             cachedResourceZip.delete()
+        }
+    }
+
+    private void log(final String message) {
+        if (debug) {
+            println "${targetProject.name}:$message"
+        }
+    }
+
+    private String normalizePath(final String value) {
+        if (!value.contains(" ")) {
+            return value
+        }
+
+        if (OperatingSystem.current() == OperatingSystem.WINDOWS) {
+            return "\"$value\""
+        } else {
+            return value.replaceAll(" ", "\\ ")
         }
     }
 }

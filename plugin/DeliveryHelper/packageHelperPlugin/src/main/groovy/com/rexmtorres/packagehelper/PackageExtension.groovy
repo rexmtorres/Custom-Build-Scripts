@@ -33,6 +33,8 @@ class PackageExtension {
     protected JavaDocSettings[] javaDocSettings = []
     protected StepCounterSettings[] stepCounterSettings = []
 
+    boolean debug
+
     /**
      * Configures an Android application to be packaged.
      *
