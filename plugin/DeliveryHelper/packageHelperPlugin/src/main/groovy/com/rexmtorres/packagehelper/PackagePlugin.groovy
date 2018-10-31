@@ -12,13 +12,16 @@ import org.gradle.api.tasks.bundling.Zip
 class PackagePlugin implements Plugin<Project> {
     private static def groupPackageHelper = "packageHelper"
 
-    private static def resVersion = "v1"
-    private static def binZip = "/res/bin_${resVersion}.zip"
-    private static
-    def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/com.rexmtorres.deliveryhelper/${resVersion}"
+    private static def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/${PackagePlugin.canonicalName}"
+
+    private static def resourceStepCounter = "stepCounter_v3.0.4"
+    private static def resourceSyntaxHighlighter = "syntaxHighlighter_v3.0.83"
 
     void apply(Project project) {
         PackageExtension.project = project
+
+        prepareResource(resourceStepCounter, project)
+        prepareResource(resourceSyntaxHighlighter, project)
 
         def delivery = project.extensions.create(PackageExtension.extensionName, PackageExtension)
 
@@ -208,6 +211,33 @@ class PackagePlugin implements Plugin<Project> {
                     into(destProguardMapDir)
                 }
             }
+        }
+    }
+
+    private void prepareResource(final String resource, final Project project) {
+        def cacheRoot = new File(cacheLoc)
+        def cachedResource = new File(cacheRoot, resource)
+
+        if (!cachedResource.exists()) {
+            if (!cacheRoot.exists()) {
+                cacheRoot.mkdirs()
+            }
+
+            def resourceUri = getClass().getResource("/res/${resource}.zip")
+            def cachedResourceZip = new File(cacheRoot, "${resource}.zip")
+
+            if (!cachedResourceZip.exists()) {
+                resourceUri.withInputStream {
+                    cachedResourceZip << it
+                }
+            }
+
+            project.copy {
+                from project.zipTree(cachedResourceZip)
+                into cacheRoot
+            }
+
+            cachedResourceZip.delete()
         }
     }
 }
