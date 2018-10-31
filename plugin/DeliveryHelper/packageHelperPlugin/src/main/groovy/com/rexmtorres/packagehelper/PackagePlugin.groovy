@@ -11,7 +11,8 @@ import org.gradle.api.tasks.bundling.Zip
  * @author Rex M. Torres
  */
 class PackagePlugin implements Plugin<Project> {
-    private static def groupPackageHelper = "packageHelper"
+    private static def groupPackageHelperMain = "packageHelper"
+    private static def groupPackageHelperOthers = "phOthers"
 
     private static def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/${PackagePlugin.canonicalName}"
 
@@ -34,7 +35,7 @@ class PackagePlugin implements Plugin<Project> {
 
         project.afterEvaluate {
             def packageTask = project.task("createPackage") {
-                group groupPackageHelper
+                group groupPackageHelperMain
             }
 
             setUpAppTasks(delivery.appPackages, project, packageTask)
@@ -49,7 +50,7 @@ class PackagePlugin implements Plugin<Project> {
         }
 
         def appTask = project.task("phExportApp") {
-            group groupPackageHelper
+            group groupPackageHelperMain
             description "Exports the generated APK(s) into the specified location."
         }
 
@@ -68,10 +69,9 @@ class PackagePlugin implements Plugin<Project> {
 
             //region Task for exporting the APK from <buildDir>/outputs/apk/<build> to the specified location
             if (destApk != null) {
-                def taskNameApk = "rmtExport${varNameCap}Apk"
-
-                appTask.dependsOn project.task(taskNameApk) {
+                appTask.dependsOn project.task("phExport${varNameCap}Apk") {
                     dependsOn project.tasks[taskNameAssemble]
+                    group groupPackageHelperOthers
                     description "Exports ${srcApk} to ${destApk}"
 
                     inputs.file(srcApk)
@@ -90,9 +90,7 @@ class PackagePlugin implements Plugin<Project> {
 
             //region Task for usigning then exporting the APK from <buildDir>/outputs/apk/<build> to the specified location
             if (destUnsignedApk != null) {
-                def taskNameUnsignApk = "rmtUnsign${varNameCap}Apk"
-
-                def unsignTask = project.task(taskNameUnsignApk, type: Zip) {
+                def unsignTask = project.task("phUnsign${varNameCap}Apk", type: Zip) {
                     dependsOn project.tasks[taskNameAssemble]
 
                     archiveName "${variant.dirName}/${srcApk.name}"
@@ -100,10 +98,9 @@ class PackagePlugin implements Plugin<Project> {
                     exclude "/META-INF/**"
                 }
 
-                def taskNameUnsignedApk = "rmtExport${varNameCap}UnsignedApk"
-
-                appTask.dependsOn project.task(taskNameUnsignedApk) {
+                appTask.dependsOn project.task("phExport${varNameCap}UnsignedApk") {
                     dependsOn unsignTask
+                    group groupPackageHelperOthers
                     description "Unsigns ${srcApk} and exports it to ${destUnsignedApk}"
 
                     inputs.file(srcApk)
@@ -132,7 +129,7 @@ class PackagePlugin implements Plugin<Project> {
         }
 
         def libTask = project.task("phExportLib") {
-            group groupPackageHelper
+            group groupPackageHelperMain
             description "Exports the generated AAR(s) and/or JAR(s) into the specified location."
         }
 
@@ -150,10 +147,9 @@ class PackagePlugin implements Plugin<Project> {
             def taskNameAssemble = "assemble${varNameCap}"
 
             if (destAar != null) {
-                def taskNameAar = "rmtExport${varNameCap}Aar"
-
-                libTask.dependsOn project.task(taskNameAar) {
+                libTask.dependsOn project.task("phExport${varNameCap}Aar") {
                     dependsOn project.tasks[taskNameAssemble]
+                    group groupPackageHelperOthers
                     description "Exports ${srcAar} to ${destAar}"
 
                     inputs.file(srcAar)
@@ -170,10 +166,9 @@ class PackagePlugin implements Plugin<Project> {
             }
 
             if (destJar != null) {
-                def taskNameJar = "rmtExport${varNameCap}Jar"
-
-                libTask.dependsOn project.task(taskNameJar) {
+                libTask.dependsOn project.task("phExport${varNameCap}Jar") {
                     dependsOn project.tasks[taskNameAssemble]
+                    group groupPackageHelperOthers
                     description "Extracts the JAR file inside ${srcAar} and exports it to ${destJar}"
 
                     inputs.file(srcAar)
@@ -202,7 +197,7 @@ class PackagePlugin implements Plugin<Project> {
         }
 
         def scTask = project.task("phStepCounter") {
-            group groupPackageHelper
+            group groupPackageHelperMain
             description "Generates Amateras StepCounter profile for the specified build."
         }
 
@@ -215,9 +210,9 @@ class PackagePlugin implements Plugin<Project> {
             def inputFiles = variant.getJavaCompiler().inputs.files
             def outputFile = setting.outputCsvFile
 
-            def stepCounterBuild = new File("${project.buildDir}/stepCounter/${variant.dirName}")
+            def stepCounterBuild = new File("${project.buildDir}/stepCounter/${variant.dirName}/files")
 
-            def taskDelete = project.task("rmtDeleteSc${varNameCap}Files") {
+            def taskDelete = project.task("phDeleteSc${varNameCap}Files") {
                 dependsOn project.tasks["assemble${varNameCap}"]
 
                 inputs.files(inputFiles)
@@ -227,7 +222,7 @@ class PackagePlugin implements Plugin<Project> {
                 }
             }
 
-            def taskCopy = project.task("rmtCopySc${varNameCap}Files") {
+            def taskCopy = project.task("phCopySc${varNameCap}Files") {
                 dependsOn taskDelete
 
                 def sources = project.files(inputFiles)
@@ -254,29 +249,35 @@ class PackagePlugin implements Plugin<Project> {
                 }
             }
 
-            def taskStepCounter = project.task("rmtExecuteScFor${varNameCap}", type: JavaExec) {
+            def taskStepCounter = project.task("phExecuteScFor${varNameCap}", type: JavaExec) {
                 dependsOn taskCopy
 
+                def tempCsv = new File(stepCounterBuild.parentFile, outputFile.name)
+
                 inputs.dir(stepCounterBuild)
-                outputs.file(outputFile)
+                outputs.file(tempCsv)
 
                 classpath = project.files(StepCounterExecInfo.classpath)
                 main = StepCounterExecInfo.main
                 args = [
                         "-format=csv",
-                        "-output=\"${outputFile.absolutePath}\"",
+                        "-output=\"${tempCsv.absolutePath}\"",
                         "-encoding=UTF-8",
                         "\"${stepCounterBuild.absolutePath}\""
                 ]
             }
 
-            scTask.dependsOn project.task("rmtAddScHeadersFor${varNameCap}") {
+            scTask.dependsOn project.task("phGenerateStepCounterFor${varNameCap}") {
                 dependsOn taskStepCounter
+                group groupPackageHelperOthers
 
-                inputs.file(taskStepCounter.outputs.files.first())
+                def tempCsv = taskStepCounter.outputs.files.first()
+
+                inputs.file(tempCsv)
+                outputs.file(outputFile)
 
                 doLast {
-                    def csvContent = outputFile.getText("UTF-8")
+                    def csvContent = tempCsv.getText("UTF-8")
                     csvContent = csvContent.replaceAll("\r\n", "\n")
                     csvContent = csvContent.replaceAll("\n", "\r\n")
 
@@ -311,10 +312,9 @@ class PackagePlugin implements Plugin<Project> {
             def srcProguardMapDir = new File("${project.buildDir}/outputs/mapping/${variant.dirName}")
 
             if (srcProguardMapDir.exists()) {
-                def taskNameExportProguard = "rmtExport${varNameCap}ProguardMap"
-
-                dependent.dependsOn project.task(taskNameExportProguard, type: Copy) {
+                dependent.dependsOn project.task("phExport${varNameCap}ProguardMap", type: Copy) {
                     dependsOn project.tasks["assemble${varNameCap}"]
+                    group groupPackageHelperOthers
                     description "Exports ${srcProguardMapDir} into ${destProguardMapDir}."
 
                     doFirst {
