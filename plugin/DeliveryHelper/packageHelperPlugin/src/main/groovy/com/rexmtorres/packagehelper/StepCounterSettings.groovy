@@ -4,6 +4,8 @@ import com.android.build.gradle.api.BaseVariant
 import org.gradle.api.file.ConfigurableFileCollection
 
 /**
+ * Class for storing the settings for {@link PackageExtension#stepCounter(groovy.lang.Closure)}.
+ *
  * @author Rex M. Torres
  */
 class StepCounterSettings {

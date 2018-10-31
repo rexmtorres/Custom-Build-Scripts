@@ -9,12 +9,16 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.external.javadoc.JavadocMemberLevel
 
 /**
+ * Helper extension to create a delivery package.
+ *
+ * <p>
  * Usage:
  * <pre><code>
  *     packageIt {
- *         {@link PackageExtension#app(Closure)}
- *         {@link PackageExtension#lib(Closure)}
- *         {@link PackageExtension#javadoc(Closure)}
+ *         {@link PackageExtension#app(groovy.lang.Closure)}
+ *         {@link PackageExtension#lib(groovy.lang.Closure)}
+ *         {@link PackageExtension#javadoc(groovy.lang.Closure)}
+ *         {@link PackageExtension#stepCounter(groovy.lang.Closure)}
  *     }
  * </code></pre>
  * @author Rex M. Torres
@@ -138,7 +142,7 @@ class PackageExtension {
      *         javadoc {
      *             variant = &lt;{@link BaseVariant}>
      *             outputZipFile = &lt;{@link File}>
-     *             title = &lt;{@link String}>
+     *             javadocTitle = &lt;{@link String}>
      *             javadocMemberLevel = &lt;{@link JavadocMemberLevel}>
      *             additionalSourceFiles = &lt;{@link ConfigurableFileCollection}>
      *             additionalClasspathFiles = &lt;{@link ConfigurableFileCollection}>
@@ -149,10 +153,10 @@ class PackageExtension {
      * <ul>
      *     <li>{@code variant} - The build variant of the module for which Javadoc will be
      *         configured.  This property is <i>mandatory</i>.
-     *     <li>{@code optional} - The zip file to where the Javadoc will be stored.  <b>If this
+     *     <li>{@code outputZipFile} - The zip file to where the Javadoc will be stored.  <b>If this
      *         points to an existing file, that file will be overwritten.</b>  This property is
      *         <i>mandatory</i>.
-     *     <li>{@code title} - The title of the Javadoc to be generated.  This property is
+     *     <li>{@code javadocTitle} - The javadocTitle of the Javadoc to be generated.  This property is
      *         <i>optional</i>.
      *     <li>{@code javadocMemberLevel} - Specifies the visibility level of the members to be
      *         included in the Javadoc.  This value maps to the {@code -public}, {@code -protected},
@@ -164,11 +168,10 @@ class PackageExtension {
      *         this property.
      *     <li>{@code additionalClasspathFiles} - List of additional class paths used to resolve
      *         type references in the source codes.  This property is <i>optional</i>.  The
-     *         variant's classpath as well as the Android and annotation libraries
+     *         variant's classpath as well as the Android library
      *         (variant.javaCompile.classpath.files,
-     *         &lt;sdk_directory>/platforms/&lt;platform_directory>/android.jar,
-     *         &lt;sdk_directory>/tools/support/annotations.jar) are already included, so there's no
-     *         need to add them in this property.
+     *         &lt;sdk_directory>/platforms/&lt;platform_directory>/android.jar) are already
+     *         included, so there's no need to add them in this property.
      *     <li>{@code excludedFiles} - Set of patterns for files to be excluded from Javadoc.  This
      *         property is <i>optional</i>.
      * </ul>
@@ -190,6 +193,40 @@ class PackageExtension {
         javaDocSettings += javadoc
     }
 
+    /**
+     * Configures an <a href="https://github.com/takezoe/stepcounter">Amateras StepCounter</a> on
+     * the specified build.
+     *
+     * <p>
+     * Usage:
+     * <pre><code>
+     *     packageIt {
+     *         stepCounter {
+     *             variant = &lt;{@link BaseVariant}>
+     *             outputCsvFile = &lt;{@link File}>
+     *             additionalSourceFiles = &lt;{@link ConfigurableFileCollection}>
+     *             includes = &lt;{@link List}&lt;{@link String}>>
+     *             excludes = &lt;{@link List}&lt;{@link String}>>
+     *         }
+     *     }
+     * </code></pre>
+     * <ul>
+     *     <li>{@code variant} - The build variant of the module to be processed.  This property is
+     *         <i>mandatory</i>.
+     *     <li>{@code outputCsvFile} - The CSV report file to be generated.  <b>If this points to an
+     *         existing file, that file will be overwritten.</b>  This property is <i>mandatory</i>.
+     *     <li>{@code additionalSourceFiles} - List of additional source files to be included in the
+     *         report.  This property is <i>optional</i>.  The variant's source files
+     *         (variant.javaCompile.source) are already included, so there's no need to add them in
+     *         this property.
+     *     <li>{@code includes} - Set of patterns for files to be included in the report.  This
+     *         property is <i>optional</i>.
+     *     <li>{@code excludes} - Set of patterns for files to be excluded in the report.  This
+     *         property is <i>optional</i>.
+     * </ul>
+     *
+     * @param stepCounterClosure {@link StepCounterSettings} closure for setting up StepCounter.
+     */
     void stepCounter(final Closure<StepCounterSettings> stepCounterClosure) {
         def stepCounter = new StepCounterSettings()
         project.configure(stepCounter, stepCounterClosure)
@@ -203,11 +240,13 @@ class PackageExtension {
         }
 
         if (stepCounter.includes == null) {
-            stepCounter.includes = ["**/*.java", "**/*.xml"]
+            //stepCounter.includes = ["**/*.java", "**/*.xml"]
+            stepCounter.includes = []
         }
 
         if (stepCounter.excludes == null) {
-            stepCounter.excludes = ["**/*.aidl", "**/R.java", "**/package-info.java", "**/AndroidManifest.xml"]
+            //stepCounter.excludes = ["**/*.aidl", "**/R.java", "**/package-info.java", "**/AndroidManifest.xml"]
+            stepCounter.excludes = []
         }
 
         stepCounterSettings += stepCounter

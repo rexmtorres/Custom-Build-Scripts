@@ -1,13 +1,17 @@
 package com.rexmtorres.packagehelper
 
+import groovy.io.FileType
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.api.tasks.javadoc.Javadoc
 
 /**
+ * Plugin class for processing {@link PackageExtension}.
+ *
  * @author Rex M. Torres
  */
 class PackagePlugin implements Plugin<Project> {
@@ -41,6 +45,7 @@ class PackagePlugin implements Plugin<Project> {
             setUpAppTasks(delivery.appPackages, project, packageTask)
             setUpLibTasks(delivery.libPackages, project, packageTask)
             setUpStepCounterTasks(delivery.stepCounterSettings, project, packageTask)
+            setUpJavaDocTasks(delivery.javaDocSettings, project, packageTask)
         }
     }
 
@@ -196,7 +201,7 @@ class PackagePlugin implements Plugin<Project> {
             return
         }
 
-        def scTask = project.task("phStepCounter") {
+        def scTask = project.task("phGenerateStepCounter") {
             group groupPackageHelperMain
             description "Generates Amateras StepCounter profile for the specified build."
         }
@@ -300,6 +305,172 @@ class PackagePlugin implements Plugin<Project> {
         }
 
         dependent.dependsOn scTask
+    }
+
+    private void setUpJavaDocTasks(final JavaDocSettings[] settings, final Project project, final Task dependent) {
+        if (settings.size() < 1) {
+            return
+        }
+
+        def javadocTask = project.task("phGenerateJavadoc") {
+            group groupPackageHelperMain
+            description "Generates Javadoc for the specified build."
+        }
+
+        println "settings = $settings"
+
+        def androidApiRef = "http://d.android.com/reference"
+        def androidBoothClasspath = project.android.getBootClasspath()
+
+        settings.each { setting ->
+            def variant = setting.variant
+            def varNameCap = variant.name.capitalize()
+
+            def additionalSourceFiles = setting.additionalSourceFiles
+            def sourceFiles = variant.getJavaCompiler().inputs.files.filter {
+                it.name.endsWith(".java") ||
+                        it.name.endsWith(".kt") ||
+                        it.name.endsWith(".groovy")
+            }
+
+            if (additionalSourceFiles != null) {
+                sourceFiles += additionalSourceFiles
+            }
+
+            def additionalClasspathFiles = setting.additionalClasspathFiles
+            def classpathFiles = androidBoothClasspath + variant.getJavaCompiler().outputs.files
+
+            if (additionalClasspathFiles != null) {
+                classpathFiles += additionalClasspathFiles
+            }
+
+            def taskJavadoc = project.task("phGenerateJavadocFilesFor${varNameCap}", type: Javadoc) {
+                dependsOn project.tasks["assemble${varNameCap}"]
+
+                def tempJavadocDir = new File("${project.buildDir}/phjavadoc/${variant.dirName}")
+
+                inputs.files(sourceFiles, classpathFiles)
+                outputs.dir(tempJavadocDir)
+
+                classpath = project.files(classpathFiles)
+
+                failOnError setting.failOnError
+                source sourceFiles
+                destinationDir tempJavadocDir
+
+                sourceFiles.each {
+                    println "source: $it"
+                }
+
+                classpathFiles.each {
+                    println "class: $it"
+                }
+
+                if (setting.javadocTitle != null) {
+                    title setting.javadocTitle
+                }
+
+                if (setting.excludedFiles != null) {
+                    exclude setting.excludedFiles
+                }
+
+                options {
+                    if (setting.javadocMemberLevel != null) {
+                        memberLevel = setting.javadocMemberLevel
+                    }
+
+                    if (setting.windowTitle != null) {
+                        windowTitle = setting.windowTitle
+                    }
+
+                    if (setting.optionsFile != null) {
+                        optionFiles << setting.optionsFile
+                    }
+                }
+
+                doLast {
+                    // Force Android API reference links to be opened in a new window/tab by adding
+                    // a "target="_blank" attribute to the <a> html tags.
+                    // Without the attribute, the Android API webpage will load inside the Javadoc
+                    // frame but will fail (not allowed by browsers?  or the Android website itself
+                    // does not allow to be opened inside a frame?).
+                    destinationDir.eachFileRecurse(FileType.FILES) {
+                        if (it.name.matches(/.+\.html?$/)) {
+                            def html = it.text.replaceAll(/<a(\s+href\s*=\s*["']$androidApiRef[^"']*["'])/,
+                                    /<a target="_blank" $1/)
+                            it.withWriter { writer -> writer << html }
+                        }
+                    }
+                }
+            }
+
+            def syntaxHighlighterRes = new File("${cacheLoc}/${resourceSyntaxHighlighter}")
+
+            def taskSyntaxHighlighter = project.task("phApplySyntaxHighlighterFor${varNameCap}") {
+                dependsOn taskJavadoc
+
+                def tempJavadocDir = taskJavadoc.destinationDir
+
+                def syntaxTheme = "Eclipse"
+                def styleSheetFile = new File("${tempJavadocDir}/stylesheet.css")
+
+                inputs.dir(tempJavadocDir)
+                outputs.dir(tempJavadocDir)
+
+                doLast {
+                    // Copy the SyntaxHighlighter resources into the Javadoc dir.
+                    project.copy {
+                        from syntaxHighlighterRes
+                        into tempJavadocDir
+                    }
+
+                    // Apply SyntaxHighlighter to the HTML files.
+                    tempJavadocDir.eachFileRecurse(FileType.FILES) {
+                        if (it.name.matches(/.+\.html?$/)) {
+                            def html = it.text.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
+                                    "<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\$3/js/shBrushJava.js\"></script>")
+                                .replaceAll("</html>", "<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
+
+                            it.withWriter { writer -> writer << html }
+                        }
+                    }
+
+                    // Apply SyntaxHighlighter to the stylesheet.
+                    if(styleSheetFile.exists()) {
+                        def styleSheet = styleSheetFile.getText("UTF-8")
+                        styleSheetFile.write("@import url(\"css/shCore.css\");\r\n" +
+                                "@import url(\"css/shTheme${syntaxTheme}.css\");\r\n\r\n${styleSheet}")
+                    }
+                }
+            }
+
+            def outputFile = setting.outputZipFile
+
+            javadocTask.dependsOn project.task("phGenerateJavadocFor${varNameCap}", type: Zip) {
+                dependsOn taskSyntaxHighlighter
+                group groupPackageHelperOthers
+                description "Generates Javadoc for ${varNameCap}."
+
+                def tempJavadocDir = taskJavadoc.destinationDir
+
+                inputs.dir(tempJavadocDir)
+                outputs.file(outputFile)
+
+                baseName "javadoc${varNameCap}"
+                from tempJavadocDir
+                into "API Guide"
+
+                doLast {
+                    project.copy {
+                        from archivePath
+                        into outputFile.parentFile
+                        rename "${baseName}.zip", outputFile.name
+                    }
+                }
+            }
+        }
+
+        dependent.dependsOn javadocTask
     }
 
     private void createProguardMapTask(final BasePackage basePackage, final Project project, final Task dependent) {

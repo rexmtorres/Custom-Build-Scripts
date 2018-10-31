@@ -3,6 +3,8 @@ package com.rexmtorres.packagehelper
 import com.android.build.gradle.api.ApplicationVariant
 
 /**
+ * Class for storing the settings for {@link PackageExtension#app(groovy.lang.Closure)}
+ *
  * @author Rex M. Torres
  */
 class ApplicationPackage extends BasePackage {

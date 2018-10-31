@@ -50,9 +50,10 @@ android {
 
             javadoc {
                 variant = appVariant
-                title = appVariant.name
+                javadocTitle = appVariant.name
+                windowTitle = "test"
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
-                excludedFiles = ["a.b", "c.d"]
+                excludedFiles = ["**/R.java"]
                 outputZipFile = file("${rootProject.buildDir}/MyApp/Doc/${variant.dirName}/MyApp-API.zip")
             }
         }
