@@ -5,11 +5,10 @@ import com.android.build.gradle.api.LibraryVariant
 /**
  * @author Rex M. Torres
  */
-class LibraryPackage {
+class LibraryPackage extends BasePackage {
     LibraryVariant variant
     File aarFile
     File jarFile
-    File proguardMapDir
 
     @Override
     String toString() {

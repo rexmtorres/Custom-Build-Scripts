@@ -5,11 +5,10 @@ import com.android.build.gradle.api.ApplicationVariant
 /**
  * @author Rex M. Torres
  */
-class ApplicationPackage {
+class ApplicationPackage extends BasePackage {
     ApplicationVariant variant
     File apkFile
     File unsignedApkFile
-    File proguardMapDir
 
     @Override
     String toString() {

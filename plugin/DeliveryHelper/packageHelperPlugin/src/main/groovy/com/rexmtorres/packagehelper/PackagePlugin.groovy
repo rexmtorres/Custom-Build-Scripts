@@ -2,6 +2,8 @@ package com.rexmtorres.packagehelper
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Zip
 
 /**
@@ -36,7 +38,7 @@ class PackagePlugin implements Plugin<Project> {
             return
         }
 
-        def apkTask = project.task("phExportApk") {
+        def appTask = project.task("phExportApp") {
             group groupPackageHelper
             description "Exports the generated APK(s) into the specified location."
         }
@@ -54,10 +56,11 @@ class PackagePlugin implements Plugin<Project> {
 
             def taskNameAssemble = "assemble${varNameCap}"
 
+            //region Task for exporting the APK from <buildDir>/outputs/apk/<build> to the specified location
             if (destApk != null) {
                 def taskNameApk = "rmtExport${varNameCap}Apk"
 
-                apkTask.dependsOn project.task(taskNameApk) {
+                appTask.dependsOn project.task(taskNameApk) {
                     dependsOn project.tasks[taskNameAssemble]
                     description "Exports ${srcApk} to ${destApk}"
 
@@ -73,7 +76,9 @@ class PackagePlugin implements Plugin<Project> {
                     }
                 }
             }
+            //endregion
 
+            //region Task for usigning then exporting the APK from <buildDir>/outputs/apk/<build> to the specified location
             if (destUnsignedApk != null) {
                 def taskNameUnsignApk = "rmtUnsign${varNameCap}Apk"
 
@@ -87,7 +92,7 @@ class PackagePlugin implements Plugin<Project> {
 
                 def taskNameUnsignedApk = "rmtExport${varNameCap}UnsignedApk"
 
-                apkTask.dependsOn project.task(taskNameUnsignedApk) {
+                appTask.dependsOn project.task(taskNameUnsignedApk) {
                     dependsOn unsignTask
                     description "Unsigns ${srcApk} and exports it to ${destUnsignedApk}"
 
@@ -103,6 +108,9 @@ class PackagePlugin implements Plugin<Project> {
                     }
                 }
             }
+            //endregion
+
+            createProguardMapTask(app, project, appTask)
         }
     }
 
@@ -111,14 +119,9 @@ class PackagePlugin implements Plugin<Project> {
             return
         }
 
-        def aarTask = project.task("phExportAar") {
+        def libTask = project.task("phExportLib") {
             group groupPackageHelper
-            description "Exports the generated AAR(s) into the specified location."
-        }
-
-        def jarTask = project.task("phExportJar") {
-            group groupPackageHelper
-            description "Extracts the JAR file(s) from the generated AAR(s) and exports them into the specified location."
+            description "Exports the generated AAR(s) and/or JAR(s) into the specified location."
         }
 
         println "libPackages = $libPackages"
@@ -137,7 +140,7 @@ class PackagePlugin implements Plugin<Project> {
             if (destAar != null) {
                 def taskNameAar = "rmtExport${varNameCap}Aar"
 
-                aarTask.dependsOn project.task(taskNameAar) {
+                libTask.dependsOn project.task(taskNameAar) {
                     dependsOn project.tasks[taskNameAssemble]
                     description "Exports ${srcAar} to ${destAar}"
 
@@ -157,7 +160,7 @@ class PackagePlugin implements Plugin<Project> {
             if (destJar != null) {
                 def taskNameJar = "rmtExport${varNameCap}Jar"
 
-                jarTask.dependsOn project.task(taskNameJar) {
+                libTask.dependsOn project.task(taskNameJar) {
                     dependsOn project.tasks[taskNameAssemble]
                     description "Extracts the JAR file inside ${srcAar} and exports it to ${destJar}"
 
@@ -172,6 +175,37 @@ class PackagePlugin implements Plugin<Project> {
                             rename "classes.jar", destJar.name
                         }
                     }
+                }
+            }
+
+            createProguardMapTask(lib, project, libTask)
+        }
+    }
+
+    private void createProguardMapTask(final BasePackage basePackage, final Project project, final Task dependent) {
+        def destProguardMapDir = basePackage.proguardMapDir
+
+        if (destProguardMapDir != null) {
+            def variant = basePackage.variant
+            def varNameCap = variant.name.capitalize()
+
+            def srcProguardMapDir = new File("${project.buildDir}/outputs/mapping/${variant.dirName}")
+
+            if (srcProguardMapDir.exists()) {
+                def taskNameExportProguard = "rmtExport${varNameCap}ProguardMap"
+
+                dependent.dependsOn project.task(taskNameExportProguard, type: Copy) {
+                    dependsOn project.tasks["assemble${varNameCap}"]
+                    description "Exports ${srcProguardMapDir} into ${destProguardMapDir}."
+
+                    doFirst {
+                        if (destProguardMapDir.exists()) {
+                            destProguardMapDir.deleteDir()
+                        }
+                    }
+
+                    from(srcProguardMapDir)
+                    into(destProguardMapDir)
                 }
             }
         }
