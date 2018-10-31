@@ -43,6 +43,11 @@ android {
                 proguardMapDir = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/Proguard")
             }
 
+            stepCounter {
+                variant = appVariant
+                outputCsvFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/StepCounter.csv")
+            }
+
             javadoc {
                 variant = appVariant
                 title = appVariant.name

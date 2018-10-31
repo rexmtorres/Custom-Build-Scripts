@@ -27,6 +27,7 @@ class PackageExtension {
     protected ApplicationPackage[] appPackages = []
     protected LibraryPackage[] libPackages = []
     protected JavaDocSettings[] javaDocSettings = []
+    protected StepCounterSettings[] stepCounterSettings = []
 
     /**
      * Configures an Android application to be packaged.
@@ -187,5 +188,28 @@ class PackageExtension {
         }
 
         javaDocSettings += javadoc
+    }
+
+    void stepCounter(final Closure<StepCounterSettings> stepCounterClosure) {
+        def stepCounter = new StepCounterSettings()
+        project.configure(stepCounter, stepCounterClosure)
+
+        if (stepCounter.variant == null) {
+            throw new GradleException("stepCounter.variant cannot be null!")
+        }
+
+        if (stepCounter.outputCsvFile == null) {
+            throw new GradleException("stepCounter.outputCsvFile cannot be null!")
+        }
+
+        if (stepCounter.includes == null) {
+            stepCounter.includes = ["**/*.java", "**/*.xml"]
+        }
+
+        if (stepCounter.excludes == null) {
+            stepCounter.excludes = ["**/*.aidl", "**/R.java", "**/package-info.java", "**/AndroidManifest.xml"]
+        }
+
+        stepCounterSettings += stepCounter
     }
 }

@@ -4,6 +4,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 
 /**
@@ -17,6 +18,12 @@ class PackagePlugin implements Plugin<Project> {
     private static def resourceStepCounter = "stepCounter_v3.0.4"
     private static def resourceSyntaxHighlighter = "syntaxHighlighter_v3.0.83"
 
+    private static class StepCounterExecInfo {
+        static def jar = "stepcounter-3.0.4-jar-with-dependencies.jar"
+        static def main = "jp.sf.amateras.stepcounter.Main"
+        static def classpath = new File("${cacheLoc}/${resourceStepCounter}/${jar}")
+    }
+
     void apply(Project project) {
         PackageExtension.project = project
 
@@ -26,17 +33,17 @@ class PackagePlugin implements Plugin<Project> {
         def delivery = project.extensions.create(PackageExtension.extensionName, PackageExtension)
 
         project.afterEvaluate {
-            setUpAppTasks(delivery.appPackages, project)
-            setUpLibTasks(delivery.libPackages, project)
-        }
-
-        project.task("createDelivery") {
-            doLast {
+            def packageTask = project.task("createPackage") {
+                group groupPackageHelper
             }
+
+            setUpAppTasks(delivery.appPackages, project, packageTask)
+            setUpLibTasks(delivery.libPackages, project, packageTask)
+            setUpStepCounterTasks(delivery.stepCounterSettings, project, packageTask)
         }
     }
 
-    private void setUpAppTasks(final ApplicationPackage[] appPackages, final Project project) {
+    private void setUpAppTasks(final ApplicationPackage[] appPackages, final Project project, final Task dependent) {
         if (appPackages.size() < 1) {
             return
         }
@@ -115,9 +122,11 @@ class PackagePlugin implements Plugin<Project> {
 
             createProguardMapTask(app, project, appTask)
         }
+
+        dependent.dependsOn appTask
     }
 
-    private void setUpLibTasks(final LibraryPackage[] libPackages, final Project project) {
+    private void setUpLibTasks(final LibraryPackage[] libPackages, final Project project, final Task dependent) {
         if (libPackages.size() < 1) {
             return
         }
@@ -183,6 +192,113 @@ class PackagePlugin implements Plugin<Project> {
 
             createProguardMapTask(lib, project, libTask)
         }
+
+        dependent.dependsOn libTask
+    }
+
+    private void setUpStepCounterTasks(final StepCounterSettings[] settings, final Project project, final Task dependent) {
+        if (settings.size() < 1) {
+            return
+        }
+
+        def scTask = project.task("phStepCounter") {
+            group groupPackageHelper
+            description "Generates Amateras StepCounter profile for the specified build."
+        }
+
+        println "settings = $settings"
+
+        settings.each { setting ->
+            def variant = setting.variant
+            def varNameCap = variant.name.capitalize()
+
+            def inputFiles = variant.getJavaCompiler().inputs.files
+            def outputFile = setting.outputCsvFile
+
+            def stepCounterBuild = new File("${project.buildDir}/stepCounter/${variant.dirName}")
+
+            def taskDelete = project.task("rmtDeleteSc${varNameCap}Files") {
+                dependsOn project.tasks["assemble${varNameCap}"]
+
+                inputs.files(inputFiles)
+
+                doLast {
+                    stepCounterBuild.deleteDir()
+                }
+            }
+
+            def taskCopy = project.task("rmtCopySc${varNameCap}Files") {
+                dependsOn taskDelete
+
+                def sources = project.files(inputFiles)
+
+                if (setting.additionalSourceFiles != null) {
+                    sources += setting.additionalSourceFiles
+                }
+
+                inputs.files(sources)
+                outputs.dir(stepCounterBuild)
+
+                doLast {
+                    sources.each { file ->
+                        if (file.exists()) {
+                            project.copy {
+                                from file
+                                into new File(stepCounterBuild, file.name)
+
+                                include setting.includes
+                                exclude setting.excludes
+                            }
+                        }
+                    }
+                }
+            }
+
+            def taskStepCounter = project.task("rmtExecuteScFor${varNameCap}", type: JavaExec) {
+                dependsOn taskCopy
+
+                inputs.dir(stepCounterBuild)
+                outputs.file(outputFile)
+
+                classpath = project.files(StepCounterExecInfo.classpath)
+                main = StepCounterExecInfo.main
+                args = [
+                        "-format=csv",
+                        "-output=\"${outputFile.absolutePath}\"",
+                        "-encoding=UTF-8",
+                        "\"${stepCounterBuild.absolutePath}\""
+                ]
+            }
+
+            scTask.dependsOn project.task("rmtAddScHeadersFor${varNameCap}") {
+                dependsOn taskStepCounter
+
+                inputs.file(taskStepCounter.outputs.files.first())
+
+                doLast {
+                    def csvContent = outputFile.getText("UTF-8")
+                    csvContent = csvContent.replaceAll("\r\n", "\n")
+                    csvContent = csvContent.replaceAll("\n", "\r\n")
+
+                    def lines = csvContent.split("\n").length + 1
+
+                    outputFile.withWriter { writer ->
+                        writer.write("\ufeff" +                                     // Force BOM header to display Japanese chars correctly in Excel
+                                "\"\u30d5\u30a1\u30a4\u30eb\r\n(File)\"," +         // Header: ファイル (File)
+                                "\"\u7a2e\u985e\r\n(Type)\"," +                     // Header: 種類 (Type)
+                                "\"\u30ab\u30c6\u30b4\u30ea\r\n(Category)\"," +     // Header: カテゴリ (Category)
+                                "\"\u5b9f\u884c\r\n(Executable)\"," +               // Header: 実行 (Run)
+                                "\"\u7a7a\u884c\r\n(Blank Lines)\"," +              // Header: 空行 (Blank Lines)
+                                "\"\u30b3\u30e1\u30f3\u30c8\r\n(Comment)\"," +      // Header: コメント (Comment)
+                                "\"\u5408\u8a08\r\n(Total)\"\r\n" +                 // Header: 合計 (Total)
+                                "${csvContent}\r\n" +                               // Step Count Data (starts from row 2)
+                                ",,\u5408\u8a08 (Total),=sum(D2:D${lines}),=sum(E2:E${lines}),=sum(F2:F${lines}),=sum(G2:G${lines})")  // Summation
+                    }
+                }
+            }
+        }
+
+        dependent.dependsOn scTask
     }
 
     private void createProguardMapTask(final BasePackage basePackage, final Project project, final Task dependent) {
