@@ -10,7 +10,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
-        classpath group: "com.rexmtorres", name: "packageHelperPlugin", version: "1.0-SNAPSHOT"
+        classpath group: "com.rexmtorres", name: "packageHelperPlugin", version: "1.0.0"
     }
 }
 
