@@ -10,12 +10,12 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
-        classpath group: "com.rexmtorres", name: "packageHelperPlugin", version: "1.0.0"
+        classpath group: "com.rmt.android", name: "packageHelperPlugin", version: "1.0.0"
     }
 }
 
 apply plugin: 'com.android.application'
-apply plugin: 'com.rexmtorres.package-helper'
+apply plugin: 'com.rmt.android.package-helper'
 
 android {
     compileSdkVersion 28

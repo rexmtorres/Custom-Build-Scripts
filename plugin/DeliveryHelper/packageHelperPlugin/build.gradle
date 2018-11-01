@@ -3,10 +3,82 @@ plugins {
     id 'groovy'
 }
 
+Properties properties = new Properties()
+properties.load(file("${System.getProperty("user.home")}/.gradle/gradle.properties").newDataInputStream())
+
+def user = properties.getProperty("bintray.user")
+def key = properties.getProperty("bintray.apikey")
+
+ext {
+    //region https://github.com/novoda/bintray-release/wiki/Configuration-of-the-publish-closure
+    publish = [
+            // The artifact id to use.
+            artifactId: 'package-helper',
+
+            // A string with the version to use. Can't end with -SNAPSHOT because bintray doesn't accept snapshots.
+            publishVersion: '0.1.0',
+
+            // The group id to use for the upload.
+            groupId: 'com.rmt.android',
+
+            // Contains the organisation name to use for upload.
+            userOrg: 'rainai',
+
+            // A short description for this package in bintray.
+            desc: 'Helper extension to easily package your Android project for delivery.',
+
+            // The display name for this package in bintray. If not set, the artifactId will be used for this.
+            uploadName: 'package-helper',
+
+            // A string with the url for the website of this project. The Github repo can be used here.
+            website: 'https://github.com/rexmtorres/Custom-Build-Scripts',
+
+            // The url of the issue tracker for the project. If the website contains 'github.com' then this property is set to "${website}/issues" by default.
+            issueTracker: 'https://github.com/rexmtorres/Custom-Build-Scripts/issues',
+
+            // The url of the vcs for this project. If the website contains 'github.com' then this is set to "${website}.git" by default.
+            repository: 'https://github.com/rexmtorres/Custom-Build-Scripts.git',
+
+            // A list of license identifiers for the project. Identifiers can be found here: http://spdx.org/licenses/ and default value is ['Apache-2.0'].
+            licenses: ['Apache-2.0'],
+
+            // The repository name. Set to 'maven' by default.
+            repoName: 'maven',
+
+            // The username to be used to upload.
+            bintrayUser: user,
+
+            // The bintray API key for the user account. Explanation of where to find this value can be found here https://bintray.com/docs/usermanual/starting/starting_tutorial2uploading.html#_uploading_using_curl
+            bintrayKey: key,
+
+            // This boolean defines if the package will be published when uploaded. If this is false, the package will still be uploaded to bintray but you'll have to publish it manually. Default value is true.
+            autoPublish: true,
+
+            // If set to true this will run everything but it won't upload the package to bintray. If false then it will upload normally.
+            dryRun: true,
+
+            // A list of publication names to use for the upload. The default value is ['maven'], which is a publication that this plugin creates for you. You can define your own publications, more info in the wiki page
+            publications: ['maven'],
+    ]
+    //endregion
+}
+
+def local = false
+
+if (local) {
+    apply from: 'publishLocalMaven.gradle'
+} else {
+    apply from: 'publishBintray.gradle'
+}
+
 gradlePlugin {
     plugins {
-        simplePlugin {
-            id = 'com.rexmtorres.package-helper'
+        binaryRelease {
+            id = "${publish.groupId}.${publish.artifactId}"
+            implementationClass = 'com.rexmtorres.packagehelper.PackagePlugin'
+        }
+        legacy {
+            id = "${publish.groupId}.${publish.artifactId}"
             implementationClass = 'com.rexmtorres.packagehelper.PackagePlugin'
         }
     }
@@ -15,21 +87,4 @@ gradlePlugin {
 dependencies {
     compile localGroovy()
     compile "com.android.tools.build:gradle:$androidGradlePluginVersion"
-}
-
-group = 'com.rexmtorres'
-version = '1.0.0'
-
-apply plugin: 'maven'
-
-repositories {
-    mavenCentral()
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: uri('../repo'))
-        }
-    }
 }

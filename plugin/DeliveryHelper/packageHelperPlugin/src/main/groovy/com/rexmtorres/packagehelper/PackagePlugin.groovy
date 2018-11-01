@@ -636,7 +636,7 @@ class PackagePlugin implements Plugin<Project> {
 
     private void log(final String message) {
         if (debug) {
-            println "${targetProject.name}:$message"
+            println ":${targetProject.name}:$message"
         }
     }
 
