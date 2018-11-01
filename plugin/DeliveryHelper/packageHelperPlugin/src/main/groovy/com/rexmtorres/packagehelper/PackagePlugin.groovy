@@ -640,15 +640,34 @@ class PackagePlugin implements Plugin<Project> {
         }
     }
 
-    private String normalizePath(final String value) {
-        if (!value.contains(" ")) {
-            return value
+    /**
+     * <ol>
+     *     <li>If path contains space(s), return a path that has been modified according to the rules below:
+     *          <ol>
+     *              <li>If on Windows, enclose path in double quotes.<br>
+     *                  Example:<br>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Original: <b>{@code C:\Path with\spaces\in the\file name.txt}</b><br>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Normalized: <b>{@code "C:\Path with\spaces\in the\file name.txt"}</b>
+     *              <li>Else (if on Linux/Max OS), escape the space(s).<br>
+     *                  Example:<br>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Original: <b>{@code /Path with/spaces/in the/file name.txt}</b><br>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Normalized: <b>{@code /Path\ with/spaces/in\ the/file\ name.txt}</b>
+     *          </ol>
+     *     <li>Else, return the path.
+     * </ol>
+     *
+     * @param path The path to be processed.
+     * @return The path as described above.
+     */
+    private static String normalizePath(final String path) {
+        if (!path.contains(" ")) {
+            return path
         }
 
         if (OperatingSystem.current() == OperatingSystem.WINDOWS) {
-            return "\"$value\""
+            return "\"$path\""
         } else {
-            return value.replaceAll(" ", "\\ ")
+            return path.replaceAll(" ", "\\ ")
         }
     }
 }
