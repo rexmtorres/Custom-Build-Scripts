@@ -1,0 +1,72 @@
+buildscript {
+
+    repositories {
+        google()
+        jcenter()
+
+        maven {
+            url = uri("../repo")
+        }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.2.1'
+        classpath group: "com.rmt.android", name: "packagerPlugin", version: "0.1.0"
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'com.rmt.android.packager'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.rexmtorres.deliveryhelper"
+        minSdkVersion 16
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.all { appVariant ->
+        packager {
+            debug = true
+
+            app {
+                variant = appVariant
+                apkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp.apk")
+                unsignedApkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp-unsigned.apk")
+                proguardMapDir = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/Proguard")
+            }
+
+            stepCounter {
+                variant = appVariant
+                outputCsvFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/Step Counter.csv")
+                excludes = ["**/R.java", "**/*.json"]
+            }
+
+            javadoc {
+                variant = appVariant
+                javadocTitle = appVariant.name
+                windowTitle = "test"
+                javadocMemberLevel = JavadocMemberLevel.PROTECTED
+                excludes = ["**/R.java"]
+                outputZipFile = file("${rootProject.buildDir}/MyApp/Doc/${variant.dirName}/MyApp-API.zip")
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+}

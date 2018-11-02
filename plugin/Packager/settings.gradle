@@ -1,0 +1,3 @@
+include ':packagerPlugin'
+include ':app'
+include ':mylibrary'
