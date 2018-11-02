@@ -1,10 +1,11 @@
+/*
+ * @author Rex M. Torres
+ */
+
 package com.rexmtorres.packagehelper
 
 import com.android.build.gradle.api.BaseVariant
 
-/**
- * @author Rex M. Torres
- */
 class BasePackage {
     /**
      * The build variant of the module to be packaged.  This property is <i>mandatory</i>.

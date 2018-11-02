@@ -1,3 +1,7 @@
+/*
+ * @author Rex M. Torres
+ */
+
 package com.rexmtorres.packagehelper
 
 import com.android.build.gradle.api.BaseVariant
@@ -6,8 +10,6 @@ import org.gradle.api.file.ConfigurableFileCollection
 /**
  * Class for storing the settings for the
  * <a href="PackageExtension.html#stepCounter(Closure<StepCounterSettings>)">stepCounter</a> closure.
- *
- * @author Rex M. Torres
  */
 class StepCounterSettings {
     /**

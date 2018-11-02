@@ -92,6 +92,8 @@ dependencies {
 task("generateDoc", type: Groovydoc) {
     group "documentation"
 
+    use = true
+
     source = file("src/main/groovy/")// project.sourceSets.main.java.srcDirs
     classpath = sourceSets.main.output + sourceSets.main.compileClasspath
     destinationDir = file("${project.buildDir}/groovydoc")

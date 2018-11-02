@@ -1,3 +1,7 @@
+/*
+ * @author Rex M. Torres
+ */
+
 package com.rexmtorres.packagehelper
 
 import com.android.build.gradle.api.BaseVariant
@@ -7,8 +11,6 @@ import org.gradle.external.javadoc.JavadocMemberLevel
 /**
  * Class for storing the settings for the
  * <a href="PackageExtension.html#javadoc(Closure<JavaDocSettings>)">javadoc</a> closure.
- *
- * @author Rex M. Torres
  */
 class JavaDocSettings {
     /**

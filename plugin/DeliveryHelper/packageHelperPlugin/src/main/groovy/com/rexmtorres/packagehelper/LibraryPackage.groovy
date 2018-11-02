@@ -1,3 +1,7 @@
+/*
+ * @author Rex M. Torres
+ */
+
 package com.rexmtorres.packagehelper
 
 import com.android.build.gradle.api.LibraryVariant
@@ -5,8 +9,6 @@ import com.android.build.gradle.api.LibraryVariant
 /**
  * Class for storing the settings for the
  * <a href="PackageExtension.html#lib(Closure<LibraryPackage>)">lib</a> closure.
- *
- * @author Rex M. Torres
  */
 class LibraryPackage extends BasePackage {
     /**

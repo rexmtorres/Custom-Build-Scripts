@@ -1,3 +1,7 @@
+/*
+ * @author Rex M. Torres
+ */
+
 package com.rexmtorres.packagehelper
 
 import groovy.io.FileType
@@ -12,8 +16,6 @@ import org.gradle.internal.os.OperatingSystem
 
 /**
  * Plugin class for processing the {@code packageIt} extension defined by {@link PackageExtension}.
- *
- * @author Rex M. Torres
  */
 class PackagePlugin implements Plugin<Project> {
     private final static def groupPackageHelperMain = "packageHelper"

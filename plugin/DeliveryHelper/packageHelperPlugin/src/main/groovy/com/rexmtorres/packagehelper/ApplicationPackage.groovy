@@ -1,3 +1,7 @@
+/*
+ * @author Rex M. Torres
+ */
+
 package com.rexmtorres.packagehelper
 
 import com.android.build.gradle.api.ApplicationVariant
@@ -5,8 +9,6 @@ import com.android.build.gradle.api.ApplicationVariant
 /**
  * Class for storing the settings for the
  * <a href="PackageExtension.html#app(Closure<ApplicationPackage>)">app</a> closure.
- *
- * @author Rex M. Torres
  */
 class ApplicationPackage extends BasePackage {
     /**

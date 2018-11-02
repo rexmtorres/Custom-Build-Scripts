@@ -1,3 +1,7 @@
+/*
+ * @author Rex M. Torres
+ */
+
 package com.rexmtorres.packagehelper
 
 import com.android.build.gradle.api.ApplicationVariant
@@ -32,7 +36,6 @@ import org.gradle.external.javadoc.JavadocMemberLevel
  *         }
  *     }
  * </code></pre>
- * @author Rex M. Torres
  */
 class PackageExtension {
     protected final static String extensionName = "packageIt"
