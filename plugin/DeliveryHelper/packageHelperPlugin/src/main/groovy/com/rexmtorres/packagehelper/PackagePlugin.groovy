@@ -11,7 +11,7 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.internal.os.OperatingSystem
 
 /**
- * Plugin class for processing {@link PackageExtension}.
+ * Plugin class for processing the {@code packageIt} extension defined by {@link PackageExtension}.
  *
  * @author Rex M. Torres
  */
@@ -436,9 +436,9 @@ class PackagePlugin implements Plugin<Project> {
 
                 classpath = project.files(classpathFiles)
 
-                failOnError setting.failOnError
-                source sourceFiles
-                destinationDir tempJavadocDir
+                failOnError = setting.failOnError
+                source = sourceFiles
+                destinationDir = tempJavadocDir
 
                 sourceFiles.each {
                     log("$taskName> source: $it")
@@ -449,11 +449,11 @@ class PackagePlugin implements Plugin<Project> {
                 }
 
                 if (setting.javadocTitle != null) {
-                    title setting.javadocTitle
+                    title = setting.javadocTitle
                 }
 
-                if (setting.excludedFiles != null) {
-                    exclude setting.excludedFiles
+                if (setting.excludes != null) {
+                    excludes = setting.excludes
                 }
 
                 options {

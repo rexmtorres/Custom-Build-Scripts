@@ -63,7 +63,7 @@ ext {
     //endregion
 }
 
-def local = false
+def local = true
 
 if (local) {
     apply from: 'publishLocalMaven.gradle'
@@ -87,4 +87,34 @@ gradlePlugin {
 dependencies {
     compile localGroovy()
     compile "com.android.tools.build:gradle:$androidGradlePluginVersion"
+}
+
+task("generateDoc", type: Groovydoc) {
+    group "documentation"
+
+    source = file("src/main/groovy/")// project.sourceSets.main.java.srcDirs
+    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+    destinationDir = file("${project.buildDir}/groovydoc")
+
+    windowTitle = "Packager Plugin v${publish.publishVersion}"
+    docTitle = "<h1>${windowTitle}</h1>"
+
+    link("https://docs.oracle.com/javase/10/docs/api",
+            "java.lang",
+            "java.io",
+            "java.util")
+
+    link("https://docs.gradle.org/current/javadoc/",
+            "groovy.io",
+            "groovy.lang",
+            "org.gradle.api",
+            "org.gradle.api.file",
+            "org.gradle.api.tasks",
+            "org.gradle.api.tasks.bundling",
+            "org.gradle.api.tasks.javadoc",
+            "org.gradle.external.javadoc",
+            "org.gradle.internal.os")
+
+//    link("https://google.github.io/android-gradle-dsl/current/",
+//            "com.android.build.gradle.api")
 }

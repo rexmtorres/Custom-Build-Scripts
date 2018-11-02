@@ -9,16 +9,27 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.external.javadoc.JavadocMemberLevel
 
 /**
- * Helper extension to create a delivery package.
+ * Helper extension to package your artifacts for delivery.
  *
  * <p>
  * Usage:
  * <pre><code>
  *     packageIt {
- *         {@link PackageExtension#app(groovy.lang.Closure)}
- *         {@link PackageExtension#lib(groovy.lang.Closure)}
- *         {@link PackageExtension#javadoc(groovy.lang.Closure)}
- *         {@link PackageExtension#stepCounter(groovy.lang.Closure)}
+ *         <a href="#app(Closure<ApplicationPackage>)">app</a> {
+ *             ...
+ *         }
+ *
+ *         <a href="#lib(Closure<LibraryPackage>)">lib</a> {
+ *             ...
+ *         }
+ *
+ *         <a href="#javadoc(Closure<JavaDocSettings>)">javadoc</a> {
+ *             ...
+ *         }
+ *
+ *         <a href="#stepCounter(Closure<StepCounterSettings>)">stepCounter</a> {
+ *             ...
+ *         }
  *     }
  * </code></pre>
  * @author Rex M. Torres
@@ -33,10 +44,13 @@ class PackageExtension {
     protected JavaDocSettings[] javaDocSettings = []
     protected StepCounterSettings[] stepCounterSettings = []
 
+    /**
+     * If set to {@code true}, debug messages will be printed.  This is {@code false} by default.
+     */
     boolean debug
 
     /**
-     * Configures an Android application to be packaged.
+     * Configures an Android application artifact to be packaged.
      *
      * <p>
      * Usage:
@@ -87,7 +101,7 @@ class PackageExtension {
     }
 
     /**
-     * Configures an Android library to be packaged.
+     * Configures an Android library artifact to be packaged.
      *
      * <p>
      * Usage:
@@ -135,7 +149,11 @@ class PackageExtension {
     }
 
     /**
-     * Configures Javadoc.
+     * Configures Javadoc artifact to be packaged.
+     *
+     * <p>
+     * Note that this uses <a href="http://alexgorbatchev.com/SyntaxHighlighter/" target="_blank">
+     * SyntaxHighlighter</a> to beautify code snippets in your Javadoc.
      *
      * <p>
      * Usage:
@@ -145,10 +163,13 @@ class PackageExtension {
      *             variant = &lt;{@link BaseVariant}>
      *             outputZipFile = &lt;{@link File}>
      *             javadocTitle = &lt;{@link String}>
+     *             windowTitle = &lt;{@link String}>
+     *             failOnError = &lt;boolean>
      *             javadocMemberLevel = &lt;{@link JavadocMemberLevel}>
      *             additionalSourceFiles = &lt;{@link ConfigurableFileCollection}>
      *             additionalClasspathFiles = &lt;{@link ConfigurableFileCollection}>
-     *             excludedFiles = &lt;{@link List}&lt;{@link String}>>
+     *             excludes = &lt;{@link List}&lt;{@link String}>>
+     *             optionsFile = &lt;{@link String}>
      *         }
      *     }
      * </code></pre>
@@ -158,24 +179,31 @@ class PackageExtension {
      *     <li>{@code outputZipFile} - The zip file to where the Javadoc will be stored.  <b>If this
      *         points to an existing file, that file will be overwritten.</b>  This property is
      *         <i>mandatory</i>.
-     *     <li>{@code javadocTitle} - The javadocTitle of the Javadoc to be generated.  This property is
+     *     <li>{@code javadocTitle} - The title of the Javadoc to be generated.  This property is
      *         <i>optional</i>.
-     *     <li>{@code javadocMemberLevel} - Specifies the visibility level of the members to be
-     *         included in the Javadoc.  This value maps to the {@code -public}, {@code -protected},
-     *         {@code -package} and {@code -private} options of the javadoc executable. This
-     *         property is <i>optional</i> and defaults to {@link JavadocMemberLevel#PROTECTED}.
+     *     <li>{@code windowTitle} - The title to be displayed on the browser window.  This property
+     *         is <i>optional</i>.
+     *     <li>{@code failOnError} - If set to {@code true}, aborts the Javadoc generation if there
+     *         are errors in the Javadoc comments.  Otherwise, attempt to continue.  This property
+     *         is <i>optional</i> and is {@code false} by default.
+     *     <li>{@code javadocMemberLevel} - Specifies which members are included in the Javadoc
+     *         based on their visibility level.  This value maps to the {@code -public},
+     *         {@code -protected}, {@code -package} and {@code -private} options of the
+     *         {@code javadoc} executable. This property is <i>optional</i> and defaults to
+     *         {@link JavadocMemberLevel#PROTECTED}.
      *     <li>{@code additionalSourceFiles} - List of additional source files to be included in the
-     *         Javadoc.  This property is <i>optional</i>.  The variant's source files
-     *         (variant.javaCompile.source) are already included, so there's no need to add them in
-     *         this property.
+     *         Javadoc.  This property is <i>optional</i>.  The variant's source files are already
+     *         included, so there's no need to add them in this property.
      *     <li>{@code additionalClasspathFiles} - List of additional class paths used to resolve
      *         type references in the source codes.  This property is <i>optional</i>.  The
-     *         variant's classpath as well as the Android library
-     *         (variant.javaCompile.classpath.files,
-     *         &lt;sdk_directory>/platforms/&lt;platform_directory>/android.jar) are already
-     *         included, so there's no need to add them in this property.
-     *     <li>{@code excludedFiles} - Set of patterns for files to be excluded from Javadoc.  This
+     *         variant's classpath as well as the Android library are already included, so there's
+     *         no need to add them in this property.
+     *     <li>{@code excludes} - Set of patterns for files to be excluded from Javadoc.  This
      *         property is <i>optional</i>.
+     *     <li>{@code excludes} - Set of patterns for files to be excluded from Javadoc.  This
+     *         property is <i>optional</i>.
+     *     <li>{@code optionsFile} - {@link File} containing a list of additional Javadoc tool
+     *         options.  This property is <i>optional</i>.
      * </ul>
      *
      * @param javadocClosure {@link JavaDocSettings} closure for setting up Javadoc.
@@ -196,8 +224,8 @@ class PackageExtension {
     }
 
     /**
-     * Configures an <a href="https://github.com/takezoe/stepcounter">Amateras StepCounter</a> on
-     * the specified build.
+     * Configures an <a href="https://github.com/takezoe/stepcounter" target="_blank">Amateras
+     * StepCounter</a> artifact to be packaged.
      *
      * <p>
      * Usage:
