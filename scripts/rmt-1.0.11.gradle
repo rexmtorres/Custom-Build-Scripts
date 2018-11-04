@@ -23,6 +23,9 @@ ext.cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
 ext.binVersion = "v1"
 ext.cacheRoot = "${System.getProperty("user.home")}/.gradle/rmtcache/${binVersion}"
 
+println "WARNING:  This script is deprecated and will soon be removed."
+println "Please consider using Packager Plugin (https://bintray.com/rainai/maven/packager) instead."
+
 def downloadBin() {
     def url = new URL("${cdnRoot}/bin_${binVersion}.zip")
     def localFile = new File("${cacheRoot}/bin.zip")
