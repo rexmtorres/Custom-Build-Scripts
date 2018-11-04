@@ -1,5 +1,15 @@
-Custom-Build-Scripts
+# Important
+
+The scripts described below are *deprecated*.  They will be replaced with the [Packager Plugin](https://bintray.com/rainai/maven/packager).  I will updated this README in a while.
+
+<br/>  
+
+*DEPRECATED INFO BELOW*
 ======
+
+<br/>  
+
+## Custom-Build-Scripts
 
 These are a set of helper methods to help set up Gradle tasks for commonly used actions.  To use this in your Android Studio Gradle projects, apply this script into your module by adding:
 ```gradle
@@ -8,12 +18,11 @@ apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/scripts/rmt.gradl
 
 <br/>  
 
-Available Methods
-======
+## Available Methods
 
 After applying the script, you will have access to the following methods described below.
 
-## **exportAar**
+### **exportAar**
 Exports the AAR and extracts the JAR (inside the AAR) into the specified location renaming the files to the specified name.
   
 ```gradle
@@ -24,11 +33,11 @@ exportAar(variant, destFolder, baseFileName)
 * **baseFileName**: *String* - file name to be used for the AAR and JAR files
 (i.e. output files => *&lt;baseFileName>.aar* and *&lt;baseFileName>.jar*)
 
-##### See also [libraryVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.LibraryExtension.html#com.android.build.gradle.LibraryExtension:libraryVariants), [build variants](https://developer.android.com/studio/build/build-variants)
+###### See also [libraryVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.LibraryExtension.html#com.android.build.gradle.LibraryExtension:libraryVariants), [build variants](https://developer.android.com/studio/build/build-variants)
 
 ---
 
-## **exportApk**
+### **exportApk**
 Exports the APK into the specified location.
 
 ```gradle
@@ -40,11 +49,11 @@ exportApk(variant, destFolder, baseFileName, unsignApk)
 * **unsignApk**: *boolean* - indicates whether to remove the signing info from the exported file
 (if originally signed)
 
-##### See also [applicationVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.AppExtension.html#com.android.build.gradle.AppExtension:applicationVariants), [build variants](https://developer.android.com/studio/build/build-variants)
+###### See also [applicationVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.AppExtension.html#com.android.build.gradle.AppExtension:applicationVariants), [build variants](https://developer.android.com/studio/build/build-variants)
 
 ---
 
-## **exportProguardMapping**
+### **exportProguardMapping**
 Copies the Proguard map files into a specified location.
 
 ```gradle
@@ -53,11 +62,11 @@ exportProguardMapping(variant, outputFolder)
 * **variant**: *BaseVariant* - build variant to be processed
 * **outputFolder**: *String* - path to where the Proguard map files will be placed
 
-##### See also [BaseExtension](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.BaseExtension.html), [build variants](https://developer.android.com/studio/build/build-variants), [libraryVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.LibraryExtension.html#com.android.build.gradle.LibraryExtension:libraryVariants), [applicationVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.AppExtension.html#com.android.build.gradle.AppExtension:applicationVariants)
+###### See also [BaseExtension](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.BaseExtension.html), [build variants](https://developer.android.com/studio/build/build-variants), [libraryVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.LibraryExtension.html#com.android.build.gradle.LibraryExtension:libraryVariants), [applicationVariants](https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.AppExtension.html#com.android.build.gradle.AppExtension:applicationVariants)
 
 ---
 
-## **createJavaDoc**
+### **createJavaDoc**
 Generates JavaDoc with support for embedding code snippets with syntax highlighting through [SyntaxHighlighter v3.0.83](http://alexgorbatchev.com/SyntaxHighlighter/) from Alex Gorbatchev.
 
 ```gradle
@@ -77,7 +86,7 @@ createJavaDoc(variant, additionalSourceFiles, additionalClasspathFiles, excluded
 
 ---
 
-## **calculateLinesOfCode**
+### **calculateLinesOfCode**
 Generates step count of the source code using [Amateras StepCounter](http://amateras.osdn.jp/cgi-bin/fswiki/wiki.cgi?page=StepCounter).
   
   ```gradle
@@ -89,8 +98,7 @@ Generates step count of the source code using [Amateras StepCounter](http://amat
 
 <br/>  
 
-Usage
-======
+## Usage
 
 The methods will generate several Gradle tasks.  Most of them will be categorized into the `rmt` group.  However, the main task to take note of is the **`createDelivery`** task, and its variant-specific alternatives, which you can find under the `rmtDelivery` group.  Simply execute the **`createDelivery`** to start assembling your module, exporting the AAR/JAR/APK files, and generating the Javadoc, step count and Proguard map files.
 
@@ -98,7 +106,7 @@ The methods will generate several Gradle tasks.  Most of them will be categorize
 
 <br/>  
 
-## Library Module Example
+### Library Module Example
 
 Below is an example of a library module using [**exportAar()**](#exportaar), [**calculateLinesOfCode()**](#calculatelinesofcode) and [**createJavaDoc()**](#createjavadoc):
 ```gradle
@@ -141,7 +149,7 @@ android {
 
 <br/>  
 
-## Application Module Example
+### Application Module Example
 
 Below is an example of an application module using [**exportApk()**](#exportapk), [**calculateLinesOfCode()**](#calculatelinesofcode), [**exportProguardMapping()**](#exportproguardmapping) and [**createJavaDoc()**](#createjavadoc):
 ```gradle
