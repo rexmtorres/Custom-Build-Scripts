@@ -18,11 +18,14 @@ ext {
             // Contains the organisation name to use for upload.
             userOrg: 'rainai',
 
+            developerName: 'Rex M. Torres',
+            developerEmail: 'rexmtorres@gmail.com',
+
             // A short description for this package in bintray.
-            desc: 'Helper extension to easily package your Android project for delivery.',
+            desc: 'A Gradle plugin for packaging your Android artifacts for delivery.',
 
             // The display name for this package in bintray. If not set, the artifactId will be used for this.
-            uploadName: 'packager',
+            uploadName: 'Packager',
 
             // A string with the url for the website of this project. The Github repo can be used here.
             website: 'https://github.com/rexmtorres/Custom-Build-Scripts',
@@ -35,6 +38,8 @@ ext {
 
             // A list of license identifiers for the project. Identifiers can be found here: http://spdx.org/licenses/ and default value is ['Apache-2.0'].
             licenses: ['Apache-2.0'],
+
+            licenseUrls: ['https://opensource.org/licenses/Apache-2.0'],
 
             // The repository name. Set to 'maven' by default.
             repoName: 'maven',
@@ -57,7 +62,7 @@ ext {
     //endregion
 }
 
-def local = true
+def local = false
 
 if (local) {
     apply from: 'publishLocalMaven.gradle'
@@ -81,38 +86,4 @@ gradlePlugin {
 dependencies {
     compile localGroovy()
     compile "com.android.tools.build:gradle:$androidGradlePluginVersion"
-}
-
-task("generateDoc", type: Groovydoc) {
-    group "documentation"
-
-    use = true
-
-    source = file("src/main/groovy/")// project.sourceSets.main.java.srcDirs
-    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
-    destinationDir = file("${project.buildDir}/groovydoc")
-
-    windowTitle = "Packager Plugin v${publish.publishVersion}"
-    docTitle = "<h1>${windowTitle}</h1>"
-
-    link("http://docs.groovy-lang.org/docs/groovy-latest/html/api/",
-            "groovy.io",
-            "groovy.lang")
-
-    link("https://docs.oracle.com/javase/10/docs/api",
-            "java.lang",
-            "java.io",
-            "java.util")
-
-    link("https://docs.gradle.org/current/javadoc/",
-            "org.gradle.api",
-            "org.gradle.api.file",
-            "org.gradle.api.tasks",
-            "org.gradle.api.tasks.bundling",
-            "org.gradle.api.tasks.javadoc",
-            "org.gradle.external.javadoc",
-            "org.gradle.internal.os")
-
-//    link("https://google.github.io/android-gradle-dsl/current/",
-//            "com.android.build.gradle.api")
 }

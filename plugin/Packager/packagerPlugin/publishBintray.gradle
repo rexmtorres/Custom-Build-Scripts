@@ -1,22 +1,152 @@
-apply plugin: 'com.novoda.bintray-release'
+ext {
+    bintrayRepo = publish.repoName
+    bintrayName = publish.artifactId
 
-publish {
-    artifactId = publish.artifactId
-    publishVersion = publish.publishVersion
-    groupId = publish.groupId
+    publishedGroupId = publish.groupId
+    libraryName = publish.uploadName
+    artifact = publish.artifactId
 
-    userOrg = publish.userOrg
+    libraryDescription = publish.desc
 
-    desc = publish.desc
-//    uploadName = publish.uploadName
-//    website = publish.website
-//    issueTracker = publish.issueTracker
-//    repository = publish.repository
-//    licences = publish.licenses
-//    repoName = publish.repoName
-//    bintrayUser = publish.bintrayUser
-//    bintrayKey = publish.bintrayKey
-//    autoPublish = publish.autoPublish
-    dryRun = publish.dryRun
-//    publications = publish.publications
+    siteUrl = publish.website
+    gitUrl = publish.repository
+
+    libraryVersion = publish.publishVersion
+
+    developerId = publish.userOrg
+    developerName = publish.developerName
+    developerEmail = publish.developerEmail
+
+    licenseName = publish.licenses[0]
+    licenseUrl = publish.licenseUrls[0]
+    allLicenses = publish.licenses
 }
+
+//region modified from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
+apply plugin: 'com.github.dcendents.android-maven'
+
+group = publishedGroupId                               // Maven Group ID for the artifact
+
+install {
+    repositories.mavenInstaller {
+        // This generates POM.xml with proper parameters
+        pom {
+            project {
+                packaging 'jar'
+                groupId publishedGroupId
+                artifactId artifact
+
+                // Add your description here
+                name libraryName
+                description libraryDescription
+                url siteUrl
+
+                // Set your license
+                licenses {
+                    license {
+                        name licenseName
+                        url licenseUrl
+                    }
+                }
+                developers {
+                    developer {
+                        id developerId
+                        name developerName
+                        email developerEmail
+                    }
+                }
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+
+                }
+            }
+        }
+    }
+}
+//endregion modified from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
+
+//region modified from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
+apply plugin: 'com.jfrog.bintray'
+
+version = libraryVersion
+
+task("generateDoc", type: Groovydoc) {
+    group "documentation"
+
+    use = true
+
+    source = file("src/main/groovy/")// project.sourceSets.main.java.srcDirs
+    classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+    destinationDir = file("${project.buildDir}/groovydoc")
+
+    windowTitle = "Packager Plugin v${publish.publishVersion}"
+    docTitle = "<h1>${windowTitle}</h1>"
+
+    link("http://docs.groovy-lang.org/docs/groovy-latest/html/api/",
+            "groovy.io",
+            "groovy.lang")
+
+    link("https://docs.oracle.com/javase/10/docs/api",
+            "java.lang",
+            "java.io",
+            "java.util")
+
+    link("https://docs.gradle.org/current/javadoc/",
+            "org.gradle.api",
+            "org.gradle.api.file",
+            "org.gradle.api.tasks",
+            "org.gradle.api.tasks.bundling",
+            "org.gradle.api.tasks.javadoc",
+            "org.gradle.external.javadoc",
+            "org.gradle.internal.os")
+
+//    link("https://google.github.io/android-gradle-dsl/current/",
+//            "com.android.build.gradle.api")
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from files("src/main/groovy/")
+}
+
+task javadocJar(type: Jar, dependsOn: generateDoc) {
+    classifier = 'javadoc'
+    from generateDoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+// Bintray
+//Properties properties = new Properties()
+//properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = BINTRAY_USER
+    key = BINTRAY_API_KEY
+
+    configurations = ['archives']
+    pkg {
+        repo = bintrayRepo
+        name = bintrayName
+        desc = libraryDescription
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = allLicenses
+        publish = true
+        publicDownloadNumbers = true
+        version {
+            desc = libraryDescription
+            gpg {
+                sign = true //Determines whether to GPG sign the files. The default is false
+                passphrase = BINTRAY_GPG_PASS
+                //Optional. The passphrase for GPG signing'
+            }
+        }
+    }
+}
+//endregion modified from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
