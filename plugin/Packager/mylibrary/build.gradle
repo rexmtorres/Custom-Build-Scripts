@@ -10,7 +10,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
-        classpath group: "com.rmt.android", name: "packagerPlugin", version: "0.1.0"
+        classpath group: "com.rmt.android", name: "packager", version: "0.1.0"
     }
 }
 

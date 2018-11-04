@@ -10,6 +10,7 @@ version = publish.publishVersion
 uploadArchives {
     repositories {
         mavenDeployer {
+            pom.artifactId = publish.artifactId
             repository(url: uri('../repo'))
         }
     }
