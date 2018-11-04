@@ -1,5 +1,8 @@
 // This is simply a wrapper for the latest version of the helper Gradle scripts.
 
+println "WARNING:  This script is deprecated and will soon be removed."
+println "Please consider using Packager Plugin (https://bintray.com/rainai/maven/packager) instead."
+
 def pluginVersion = getAndroidGradlePluginVersion()
 def gradleVersion = project.getGradle().getGradleVersion()
 
