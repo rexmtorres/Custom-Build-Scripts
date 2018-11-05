@@ -517,6 +517,8 @@ class PackagePlugin implements Plugin<Project> {
                     if (setting.optionsFile != null) {
                         optionFiles << setting.optionsFile
                     }
+
+                    linksOffline androidApiRef, "${project.android.sdkDirectory}/docs/reference"
                 }
 
                 doLast {
