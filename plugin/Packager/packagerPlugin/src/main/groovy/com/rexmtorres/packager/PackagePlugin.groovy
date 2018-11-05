@@ -582,28 +582,26 @@ class PackagePlugin implements Plugin<Project> {
 
             def srcProguardMapDir = new File("${project.buildDir}/outputs/mapping/${variant.dirName}")
 
-            if (srcProguardMapDir.exists()) {
-                log("PackagePlugin.setUpJavaDocTasks> Creating task 'phExport${varNameCap}ProguardMap'")
-                dependent.dependsOn project.task("phExport${varNameCap}ProguardMap", type: Copy) {
-                    def taskName = name
+            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phExport${varNameCap}ProguardMap'")
+            dependent.dependsOn project.task("phExport${varNameCap}ProguardMap", type: Copy) {
+                def taskName = name
 
-                    dependsOn project.tasks["assemble${varNameCap}"]
-                    group groupPackagerOthers
-                    description "Exports ${srcProguardMapDir} into ${destProguardMapDir}."
+                dependsOn project.tasks["assemble${varNameCap}"]
+                group groupPackagerOthers
+                description "Exports ${srcProguardMapDir} into ${destProguardMapDir}."
 
-                    doFirst {
-                        if (destProguardMapDir.exists()) {
-                            log("$taskName> Deleting $destProguardMapDir")
-                            destProguardMapDir.deleteDir()
-                        }
+                doFirst {
+                    if (destProguardMapDir.exists()) {
+                        log("$taskName> Deleting $destProguardMapDir")
+                        destProguardMapDir.deleteDir()
                     }
+                }
 
-                    from(srcProguardMapDir)
-                    into(destProguardMapDir)
+                from(srcProguardMapDir)
+                into(destProguardMapDir)
 
-                    doLast {
-                        log("$taskName> Copied $srcProguardMapDir to $destProguardMapDir")
-                    }
+                doLast {
+                    log("$taskName> Copied $srcProguardMapDir to $destProguardMapDir")
                 }
             }
         }

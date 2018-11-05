@@ -10,7 +10,7 @@ ext {
             artifactId: 'packager',
 
             // A string with the version to use. Can't end with -SNAPSHOT because bintray doesn't accept snapshots.
-            publishVersion: '0.1.0',
+            publishVersion: '0.1.1',
 
             // The group id to use for the upload.
             groupId: 'com.rmt.android',
@@ -62,7 +62,7 @@ ext {
     //endregion
 }
 
-def local = false
+def local = true
 
 if (local) {
     apply from: 'publishLocalMaven.gradle'

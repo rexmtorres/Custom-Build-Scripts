@@ -4,13 +4,13 @@ buildscript {
         google()
         jcenter()
 
-//        maven {
-//            url = uri("../repo")
-//        }
+        maven {
+            url = uri("../repo")
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
-        classpath group: "com.rmt.android", name: "packager", version: "0.1.0"
+        classpath group: "com.rmt.android", name: "packager", version: "0.1.1"
     }
 }
 
@@ -32,7 +32,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -45,7 +45,7 @@ android {
                 variant = libVariant
                 aarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib.aar")
                 jarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib.jar")
-                //proguardMapDir = file(".")
+                proguardMapDir = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/Map")
             }
 
             javadoc {

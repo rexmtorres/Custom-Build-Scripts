@@ -3,13 +3,13 @@ buildscript {
         google()
         jcenter()
 
-//        maven {
-//            url = uri("../repo")
-//        }
+        maven {
+            url = uri("../repo")
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
-        classpath group: "com.rmt.android", name: "packager", version: "0.1.0"
+        classpath group: "com.rmt.android", name: "packager", version: "0.1.1"
     }
 }
 
