@@ -21,7 +21,8 @@ class PackagePlugin implements Plugin<Project> {
     private final static def groupPackagerMain = "packager"
     private final static def groupPackagerOthers = "phOthers"
 
-    private final static def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/${PackagePlugin.canonicalName}"
+    private final static
+    def cacheLoc = "${System.getProperty("user.home")}/.gradle/rmtcache/${PackagePlugin.canonicalName}"
 
     private final static def resourceStepCounter = "stepCounter_v3.0.4"
     private final static def resourceSyntaxHighlighter = "syntaxHighlighter_v3.0.83"
@@ -59,7 +60,8 @@ class PackagePlugin implements Plugin<Project> {
         }
     }
 
-    private void setUpAppTasks(final ApplicationPackage[] appPackages, final Project project, final Task dependent) {
+    private void setUpAppTasks(
+            final ApplicationPackage[] appPackages, final Project project, final Task dependent) {
         if (appPackages.size() < 1) {
             log("PackagePlugin.setUpAppTasks> No ApplicationPackages found.")
             return
@@ -157,7 +159,8 @@ class PackagePlugin implements Plugin<Project> {
         dependent.dependsOn appTask
     }
 
-    private void setUpLibTasks(final LibraryPackage[] libPackages, final Project project, final Task dependent) {
+    private void setUpLibTasks(
+            final LibraryPackage[] libPackages, final Project project, final Task dependent) {
         if (libPackages.size() < 1) {
             log("PackagePlugin.setUpLibTasks> No LibraryPackages found.")
             return
@@ -237,7 +240,8 @@ class PackagePlugin implements Plugin<Project> {
         dependent.dependsOn libTask
     }
 
-    private void setUpStepCounterTasks(final StepCounterSettings[] settings, final Project project, final Task dependent) {
+    private void setUpStepCounterTasks(
+            final StepCounterSettings[] settings, final Project project, final Task dependent) {
         if (settings.size() < 1) {
             log("PackagePlugin.setUpStepCounterTasks> No StepCounterSettings found.")
             return
@@ -255,7 +259,9 @@ class PackagePlugin implements Plugin<Project> {
             def variant = setting.variant
             def varNameCap = variant.name.capitalize()
 
-            def inputFiles = variant.getJavaCompiler().inputs.files.filter { !it.name.endsWith(".jar") }
+            def inputFiles = variant.getJavaCompiler().inputs.files.filter {
+                !it.name.endsWith(".jar")
+            }
             def outputFile = setting.outputCsvFile
 
             def stepCounterBuild = new File("${project.buildDir}/stepCounter/${variant.dirName}/files")
@@ -386,7 +392,8 @@ class PackagePlugin implements Plugin<Project> {
         dependent.dependsOn scTask
     }
 
-    private void setUpJavaDocTasks(final JavaDocSettings[] settings, final Project project, final Task dependent) {
+    private void setUpJavaDocTasks(
+            final JavaDocSettings[] settings, final Project project, final Task dependent) {
         if (settings.size() < 1) {
             log("PackagePlugin.setUpJavaDocTasks> No JavaDocSettings found.")
             return
@@ -425,37 +432,77 @@ class PackagePlugin implements Plugin<Project> {
                 classpathFiles += additionalClasspathFiles
             }
 
-            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocFilesFor${varNameCap}'")
-            def taskJavadoc = project.task("phGenerateJavadocFilesFor${varNameCap}", type: Javadoc) {
+            def tempJavadocDir = new File("${project.buildDir}/phjavadoc/${variant.dirName}")
+
+            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phDeleteJavadocFilesFor${varNameCap}'")
+            def taskDeleteJavadoc = project.task("phDeleteJavadocFilesFor${varNameCap}") {
                 def taskName = name
 
                 dependsOn project.tasks["assemble${varNameCap}"]
 
-                def tempJavadocDir = new File("${project.buildDir}/phjavadoc/${variant.dirName}")
+                inputs.dir(tempJavadocDir)
+
+                doLast {
+                    if (tempJavadocDir.exists()) {
+                        log("$taskName> Deleting: $tempJavadocDir")
+                        tempJavadocDir.deleteDir()
+                    }
+                }
+            }
+
+            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocFilesFor${varNameCap}'")
+            def taskJavadoc = project.task("phGenerateJavadocFilesFor${varNameCap}", type: Javadoc) {
+                def taskName = name
+
+                dependsOn taskDeleteJavadoc
 
                 inputs.files(sourceFiles, classpathFiles)
                 outputs.dir(tempJavadocDir)
 
+                // FIX: https://github.com/rexmtorres/Custom-Build-Scripts/issues/3
+                // It seems that the "exclude" property of Gradle's Javadoc task does not behave
+                // in the same way as the "exclude" option of the javadoc executable.  So
+                // specifying "**/subpackage/**.java" will not work.
+                // https://discuss.gradle.org/t/javadoc-exclusion-question/11875/3
+                if (setting.excludes != null) {
+                    excludes = setting.excludes
+                }
+
                 classpath = project.files(classpathFiles)
 
                 failOnError = setting.failOnError
-                source = sourceFiles
+
+                // FIX: https://github.com/rexmtorres/Custom-Build-Scripts/issues/3
+                // As a work-around to Gradle's Javadoc task issue
+                // (https://discuss.gradle.org/t/javadoc-exclusion-question/11875/3), we will
+                // "manually" examine each file in the specified sources and check if the file
+                // matches any of the "exclude" patterns.  If it matches, we will filter it out.
+                source = sourceFiles.findAll { src ->
+                    def normalized = src.absolutePath.replace("\\", "/")
+
+                    def matchCount = setting.excludes.count { ex ->
+                        normalized.matches(wildcardToRegex(ex))
+                    }
+
+                    if (matchCount > 0) {
+                        log("$taskName> exclude: $normalized ($matchCount)")
+                    }
+
+                    matchCount < 1
+                }
+
                 destinationDir = tempJavadocDir
 
-                sourceFiles.each {
+                source.each {
                     log("$taskName> source: $it")
                 }
 
-                classpathFiles.each {
+                classpath.each {
                     log("$taskName> class: $it")
                 }
 
                 if (setting.javadocTitle != null) {
                     title = setting.javadocTitle
-                }
-
-                if (setting.excludes != null) {
-                    excludes = setting.excludes
                 }
 
                 options {
@@ -498,8 +545,6 @@ class PackagePlugin implements Plugin<Project> {
 
                 dependsOn taskJavadoc
 
-                def tempJavadocDir = taskJavadoc.destinationDir
-
                 def syntaxTheme = "Eclipse"
                 def styleSheetFile = new File("${tempJavadocDir}/stylesheet.css")
 
@@ -522,14 +567,14 @@ class PackagePlugin implements Plugin<Project> {
 
                             def html = it.text.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
                                     "<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\$3/js/shBrushJava.js\"></script>")
-                                .replaceAll("</html>", "<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
+                                    .replaceAll("</html>", "<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
 
                             it.withWriter { writer -> writer << html }
                         }
                     }
 
                     // Apply SyntaxHighlighter to the stylesheet.
-                    if(styleSheetFile.exists()) {
+                    if (styleSheetFile.exists()) {
                         log("$taskName> Applying SyntaxHighlighter to $styleSheetFile")
 
                         def styleSheet = styleSheetFile.getText("UTF-8")
@@ -548,8 +593,6 @@ class PackagePlugin implements Plugin<Project> {
                 dependsOn taskSyntaxHighlighter
                 group groupPackagerOthers
                 description "Generates Javadoc for ${varNameCap}."
-
-                def tempJavadocDir = taskJavadoc.destinationDir
 
                 inputs.dir(tempJavadocDir)
                 outputs.file(outputFile)
@@ -573,7 +616,8 @@ class PackagePlugin implements Plugin<Project> {
         dependent.dependsOn javadocTask
     }
 
-    private void createProguardMapTask(final BasePackage basePackage, final Project project, final Task dependent) {
+    private void createProguardMapTask(
+            final BasePackage basePackage, final Project project, final Task dependent) {
         def destProguardMapDir = basePackage.proguardMapDir
 
         if (destProguardMapDir != null) {
@@ -669,5 +713,37 @@ class PackagePlugin implements Plugin<Project> {
         } else {
             return path.replaceAll(" ", "\\ ")
         }
+    }
+
+    // Copied from: https://www.rgagnon.com/javadetails/java-0515.html
+    private static String wildcardToRegex(String wildcard) {
+        final StringBuffer s = new StringBuffer(wildcard.length())
+        s.append('^')
+
+        for (int i = 0; i < wildcard.length(); i++) {
+            char c = wildcard.charAt(i)
+
+            switch (c) {
+                case '*':
+                    s.append(".*")
+                    break
+                case '?':
+                    s.append(".")
+                    break;
+                // escape special regexp-characters
+                case '(': case ')': case '[': case ']': case '$':
+                case '^': case '.': case '{': case '}': case '|':
+                case '\\':
+                    s.append("\\")
+                    s.append(c)
+                    break
+                default:
+                    s.append(c)
+                    break
+            }
+        }
+
+        s.append('$')
+        return (s.toString())
     }
 }
