@@ -121,10 +121,6 @@ artifacts {
     archives sourcesJar
 }
 
-// Bintray
-//Properties properties = new Properties()
-//properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
 bintray {
     user = BINTRAY_USER
     key = BINTRAY_API_KEY

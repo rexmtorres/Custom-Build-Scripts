@@ -62,7 +62,7 @@ ext {
     //endregion
 }
 
-def local = true
+def local = false
 
 if (local) {
     apply from: 'publishLocalMaven.gradle'
