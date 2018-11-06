@@ -12,8 +12,8 @@ It can automatically do the following for you:
 - Copy and rename AAR files of your library module(s) into a specified location.
 - Extract and rename classes.jar inside an AAR file into a specified location.  *This is useful in cases where you or your client can only use JAR dependencies.*
 - Export Proguard map files into a specified location.
-- Calculate the number of lines of code in your module and generate a CSV report using [Amateras StepCounter](http://amateras.osdn.jp/cgi-bin/fswiki/wiki.cgi?page=StepCounter).
-- Generate Javadoc with optional code snippet syntax highlighting using [SyntaxHighlighter v3.0.83](http://alexgorbatchev.com/SyntaxHighlighter/) (by Alex Gorbatchev) and export it into the specified zip file.
+- Calculate the number of lines of code in your module and generate a CSV report using [Amateras StepCounter](https://github.com/takezoe/stepcounter) (by Naoki Takezoe).
+- Generate Javadoc with optional code snippet syntax highlighting using [SyntaxHighlighter v3.0.83](http://alexgorbatchev.com/SyntaxHighlighter/) (MIT licensed by Alex Gorbatchev) and export it into the specified zip file.
 
 <br/>
 
@@ -202,7 +202,7 @@ Other tasks are also generated in the `phothers` group.  You will, generally, no
 | `phExport`**_`Variant`_**`Jar`            |  This extracts the JAR file (classes.jar) in the AAR of the specified variant and exports it to the location indicated by `jarFile` in the [lib](#lib) closure.  Note that this does not modify the original AAR in the build folder.                                                                                                                                      |
 | `phExport`**_`Variant`_**`ProguardMap`    | This copies the Proguard map files of the specified variant to the location indicated by `proguardMapDir` in the [app](#app) / [lib](#lib) closures.                                                                                                                                                                                                                       |
 | `phGenerateJavadocFor`**_`Variant`_**     | This generates the Javadoc of the specified variant and exports the zipped documentation to the location indicated by `outputZipFile` in the [javadoc](#javadoc) closure.  Note that this applies [SyntaxHighlighter](http://alexgorbatchev.com/SyntaxHighlighter/) to your Javadoc, so you can take advantage of fancy formatting for your code snippets in your Javadoc. |
-| `phGenerateStepCounterFor`**_`Variant`_** | This calculates the number of lines of code in your module, for the specified variant, using [Amateras StepCounter](http://amateras.osdn.jp/cgi-bin/fswiki/wiki.cgi?page=StepCounter).  The generated CSV report is written in the location indicated by `outputCsvFile` in the [stepCounter](#stepCounter) closure.                                                       |
+| `phGenerateStepCounterFor`**_`Variant`_** | This calculates the number of lines of code in your module, for the specified variant, using [Amateras StepCounter](https://github.com/takezoe/stepcounter).  The generated CSV report is written in the location indicated by `outputCsvFile` in the [stepCounter](#stepCounter) closure.                                                       |
 
 <br/>
 
