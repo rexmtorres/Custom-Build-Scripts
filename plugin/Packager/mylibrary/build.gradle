@@ -1,5 +1,4 @@
 buildscript {
-
     repositories {
         google()
         jcenter()
@@ -25,9 +24,6 @@ android {
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
@@ -39,13 +35,20 @@ android {
 
     libraryVariants.all { libVariant ->
         packager {
+            // Print debug logs.
             debug = true
 
             lib {
                 variant = libVariant
-                aarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib.aar")
-                jarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib.jar")
+                aarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib_v${defaultConfig.versionName}.aar")
+                jarFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib_v${defaultConfig.versionName}.jar")
                 proguardMapDir = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/Map")
+            }
+
+            stepCounter {
+                variant = libVariant
+                outputCsvFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/StepCounter.csv")
+                excludes = ["**/R.java", "**/*.json"]
             }
 
             javadoc {
@@ -53,7 +56,7 @@ android {
                 javadocTitle = libVariant.name
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludes = ["**/BuildConfig.java", "**/R.java", "**/internal/**"]
-                outputZipFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/MyLib-API.zip")
+                outputZipFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
             }
         }
     }

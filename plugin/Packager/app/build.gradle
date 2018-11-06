@@ -18,14 +18,16 @@ apply plugin: 'com.rmt.android.packager'
 
 android {
     compileSdkVersion 28
+
     defaultConfig {
-        applicationId "com.rexmtorres.deliveryhelper"
+        applicationId "com.rexmtorres.test"
         minSdkVersion 16
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
+
     buildTypes {
         release {
             minifyEnabled true
@@ -35,28 +37,28 @@ android {
 
     applicationVariants.all { appVariant ->
         packager {
+            // Print debug logs.
             debug = true
 
             app {
                 variant = appVariant
-                apkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp.apk")
-                unsignedApkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp-unsigned.apk")
-                proguardMapDir = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/Proguard")
+                apkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp_v${defaultConfig.versionName}.apk")
+                unsignedApkFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/MyApp_v${defaultConfig.versionName}-unsigned.apk")
+                proguardMapDir = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/Map")
             }
 
             stepCounter {
                 variant = appVariant
-                outputCsvFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/Step Counter.csv")
+                outputCsvFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/StepCounter.csv")
                 excludes = ["**/R.java", "**/*.json"]
             }
 
             javadoc {
                 variant = appVariant
                 javadocTitle = appVariant.name
-                windowTitle = "test"
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
-                excludes = ["**/R.java"]
-                outputZipFile = file("${rootProject.buildDir}/MyApp/Doc/${variant.dirName}/MyApp-API.zip")
+                excludes = ["**/BuildConfig.java", "**/R.java", "**/internal/**"]
+                outputZipFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
             }
         }
     }
