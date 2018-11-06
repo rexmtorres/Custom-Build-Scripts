@@ -1,4 +1,5 @@
 plugins {
+    id "com.gradle.plugin-publish" version "0.10.0"
     id 'java-gradle-plugin'
     id 'groovy'
 }
@@ -62,21 +63,9 @@ ext {
     //endregion
 }
 
-def local = false
-
-if (local) {
-    apply from: 'publishLocalMaven.gradle'
-} else {
-    apply from: 'publishBintray.gradle'
-}
-
 gradlePlugin {
     plugins {
-        binaryRelease {
-            id = "${publish.groupId}.${publish.artifactId}"
-            implementationClass = 'com.rexmtorres.packager.PackagePlugin'
-        }
-        legacy {
+        packager {
             id = "${publish.groupId}.${publish.artifactId}"
             implementationClass = 'com.rexmtorres.packager.PackagePlugin'
         }
@@ -87,3 +76,17 @@ dependencies {
     compile localGroovy()
     compile "com.android.tools.build:gradle:$androidGradlePluginVersion"
 }
+
+//region Publishing to Bintray
+def local = false   // Set to true to publish it locally for testing
+
+if (local) {
+    apply from: 'publishLocalMaven.gradle'
+} else {
+    apply from: 'publishBintray.gradle'
+}
+//endregion Publishing to Bintray
+
+//region Publishing to Gradle Plugin Portal
+apply from: 'publishGradlePortal.gradle'
+//endregion Publishing to Gradle Plugin Portal
