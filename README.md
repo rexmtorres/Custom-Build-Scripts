@@ -54,12 +54,12 @@ Available APIs
 
 The plugin provides the `packager` extension with the following APIs:
 
+_______________________________________
 ### <a name="debug"></a>`boolean debug`
 
 This flag enables/disables debug messages, which is useful for troubleshooting your configuration if you're experiencing errors or unexpected behavior.  If set to `true`, debug messages will be printed.  This is `false` by default.
 
-<br/>
-
+____________________________________________________
 ### <a name="app"></a>`void app(Closure appClosure)`
 
 Configures an Android application artifact to be packaged.
@@ -83,8 +83,7 @@ Usage:
 | `unsignedApkFile` | The file to where the unsigned APK will be exported. **If this points to an existing file, that file will be overwritten.** This property is optional *if* `apkFile` is already defined; that is, at least one of them must be present. If this is not specified, then only `apkFile` will be exported.                                                                                               |
 | `proguardMapDir`  | The directory where the Proguard map files will be exported. This property is *optional*. If this is not specified, then the Proguard map files will not be exported.                                                                                                                                                                                                                                 |
 
-<br/>
-
+____________________________________________________
 ### <a name="lib"></a>`void lib(Closure libClosure)`
 
 Configures an Android library artifact to be packaged.
@@ -108,8 +107,7 @@ Usage:
 | `jarFile`        | The file to where the JAR will be exported. **If this points to an existing file, that file will be overwritten.** This property is optional *if* `aarFile` is already defined; that is, at least one of them must be present. If this is not specified, then only the AAR file will be exported. |
 | `proguardMapDir` | The directory where the Proguard map files will be exported. This property is *optional*. If this is not specified, then the Proguard map files will not be exported.                                                                                                                             |
 
-<br/>
-
+________________________________________________________________
 ### <a name="javadoc"></a>`void javadoc(Closure javadocClosure)`
 
 Configures Javadoc artifact to be packaged.
@@ -147,8 +145,7 @@ Usage:
 | `excludes`                 | Set of patterns for files to be excluded from Javadoc. This property is *optional*.                                                                                                                                                                                                                                                                                                    |
 | `optionsFile`              | File containing a list of additional Javadoc tool options. This property is *optional*.                                                                                                                                                                                                                                                                                                |
 
-<br/>
-
+____________________________________________________________________________
 ### <a name="stepCounter"></a>`void stepCounter(Closure stepCounterClosure)`
 
 Configures an [Amateras StepCounter](https://github.com/takezoe/stepcounter) artifact to be packaged.
