@@ -173,7 +173,7 @@ Usage:
 
 <br/>
 
-For more information on the Packager Plugin APIs, you can refer to the [API documentation](docs/groovy/index.html).
+For more information on the Packager Plugin APIs, you can refer to the [API documentation](groovy/index.html).
 
 <br/>
 
@@ -260,11 +260,11 @@ android {
 ```
 
 The configuration above generates the following tasks:<br/>
-![tasks-app.png](docs/tasks-app.png)
+![tasks-app.png](tasks-app.png)
 
 
 Executing `createPackage` yields:<br/>
-![build-app.png](docs/build-app.png)
+![build-app.png](build-app.png)
 
 <br/>
 
@@ -319,8 +319,8 @@ android {
 ```
 
 The configuration above generates the following tasks:<br/>
-![tasks-lib.png](docs/tasks-lib.png)
+![tasks-lib.png](tasks-lib.png)
 
 
 Executing `createPackage` yields:<br/>
-![build-lib.png](docs/build-lib.png)
+![build-lib.png](build-lib.png)
