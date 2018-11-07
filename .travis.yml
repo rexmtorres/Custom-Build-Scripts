@@ -1,0 +1,4 @@
+language: groovy
+before_script: pushd plugin/Packager/
+script: ./gradlew :packagerPlugin:clean :packagerPlugin:assemble
+after_script:  popd
