@@ -25,7 +25,7 @@ ext.binVersion = "v1"
 ext.cacheRoot = "${System.getProperty("user.home")}/.gradle/rmtcache/${binVersion}"
 
 println "WARNING:  This script is deprecated and will soon be removed."
-println "Please consider using Packager Plugin (https://bintray.com/rainai/maven/packager) instead."
+println "Please consider using Packager Plugin (https://rexmtorres.github.io/Custom-Build-Scripts/docs/) instead."
 
 def downloadBin() {
     def url = new URL("${cdnRoot}/bin_${binVersion}.zip")

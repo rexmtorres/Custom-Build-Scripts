@@ -12,8 +12,8 @@ It can automatically do the following for you:
 - Copy and rename AAR files of your library module(s) into a specified location.
 - Extract and rename classes.jar inside an AAR file into a specified location.  *This is useful in cases where you or your client can only use JAR dependencies.*
 - Export Proguard map files into a specified location.
-- Calculate the number of lines of code in your module and generate a CSV report using [Amateras StepCounter](https://github.com/takezoe/stepcounter) (by Naoki Takezoe).
-- Generate Javadoc with optional code snippet syntax highlighting using [SyntaxHighlighter v3.0.83](http://alexgorbatchev.com/SyntaxHighlighter/) (MIT licensed by Alex Gorbatchev) and export it into the specified zip file.
+- Calculate the number of lines of code in your module and generate a CSV report using [Amateras StepCounter](https://github.com/takezoe/stepcounter) (by Naoki Takezoe under Apache 2.0 license).
+- Generate Javadoc with optional code snippet syntax highlighting using [SyntaxHighlighter v3.0.83](http://alexgorbatchev.com/SyntaxHighlighter/) (by Alex Gorbatchev under MIT license) and export it into the specified zip file.
 
 <br/>
 
