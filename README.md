@@ -2,4 +2,4 @@
 [![Build Status](https://travis-ci.com/rexmtorres/Custom-Build-Scripts.svg?branch=master)](https://travis-ci.com/rexmtorres/Custom-Build-Scripts)
 
 
-Please refer to the [documentation site](https://rexmtorres.github.io/Custom-Build-Scripts/docs/) for more information.
+Please refer to the [documentation site](https://rexmtorres.github.io/Packager/docs/) for more information.
