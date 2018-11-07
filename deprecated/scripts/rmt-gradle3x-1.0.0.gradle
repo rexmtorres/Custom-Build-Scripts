@@ -20,7 +20,7 @@
  * Creation date      : 07 March 2016
  */
 
-ext.cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts"
+ext.cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts/deprecated"
 ext.binVersion = "v1"
 ext.cacheRoot = "${System.getProperty("user.home")}/.gradle/rmtcache/${binVersion}"
 
