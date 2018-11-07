@@ -459,7 +459,7 @@ class PackagePlugin implements Plugin<Project> {
                 inputs.files(sourceFiles, classpathFiles)
                 outputs.dir(tempJavadocDir)
 
-                // FIX: https://github.com/rexmtorres/Custom-Build-Scripts/issues/3
+                // FIX: https://github.com/rexmtorres/Packager/issues/3
                 // It seems that the "exclude" property of Gradle's Javadoc task does not behave
                 // in the same way as the "exclude" option of the javadoc executable.  So
                 // specifying "**/subpackage/**.java" will not work.
@@ -472,7 +472,7 @@ class PackagePlugin implements Plugin<Project> {
 
                 failOnError = setting.failOnError
 
-                // FIX: https://github.com/rexmtorres/Custom-Build-Scripts/issues/3
+                // FIX: https://github.com/rexmtorres/Packager/issues/3
                 // As a work-around to Gradle's Javadoc task issue
                 // (https://discuss.gradle.org/t/javadoc-exclusion-question/11875/3), we will
                 // "manually" examine each file in the specified sources and check if the file

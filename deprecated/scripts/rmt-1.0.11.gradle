@@ -19,12 +19,12 @@
  * Creation date      : 07 March 2016
  */
  
-ext.cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts/deprecated"
+ext.cdnRoot = "https://rexmtorres.github.io/Packager/deprecated"
 ext.binVersion = "v1"
 ext.cacheRoot = "${System.getProperty("user.home")}/.gradle/rmtcache/${binVersion}"
 
 println "WARNING:  This script is deprecated and will soon be removed."
-println "Please consider using Packager Plugin (https://rexmtorres.github.io/Custom-Build-Scripts/docs/) instead."
+println "Please consider using Packager Plugin (https://rexmtorres.github.io/Packager/docs/) instead."
 
 def downloadBin() {
     def url = new URL("${cdnRoot}/bin_${binVersion}.zip")

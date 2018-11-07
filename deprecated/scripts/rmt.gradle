@@ -1,7 +1,7 @@
 // This is simply a wrapper for the latest version of the helper Gradle scripts.
 
 println "WARNING:  This script is deprecated and will soon be removed."
-println "Please consider using Packager Plugin (https://rexmtorres.github.io/Custom-Build-Scripts/docs/) instead."
+println "Please consider using Packager Plugin (https://rexmtorres.github.io/Packager/docs/) instead."
 
 def pluginVersion = getAndroidGradlePluginVersion()
 def gradleVersion = project.getGradle().getGradleVersion()
@@ -20,7 +20,7 @@ println "Version: ${latestVersion}"
 println "========================================================================================="
 println "\n"
 
-def cdnRoot = "https://rexmtorres.github.io/Custom-Build-Scripts/deprecated"
+def cdnRoot = "https://rexmtorres.github.io/Packager/deprecated"
 apply from: "${cdnRoot}/scripts/rmt-${latestVersion}.gradle"
 
 def getAndroidGradlePluginVersion() {

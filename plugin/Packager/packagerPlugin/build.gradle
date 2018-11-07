@@ -29,13 +29,13 @@ ext {
             uploadName: 'Packager',
 
             // A string with the url for the website of this project. The Github repo can be used here.
-            website: 'https://github.com/rexmtorres/Custom-Build-Scripts',
+            website: 'https://github.com/rexmtorres/Packager',
 
             // The url of the issue tracker for the project. If the website contains 'github.com' then this property is set to "${website}/issues" by default.
-            issueTracker: 'https://github.com/rexmtorres/Custom-Build-Scripts/issues',
+            issueTracker: 'https://github.com/rexmtorres/Packager/issues',
 
             // The url of the vcs for this project. If the website contains 'github.com' then this is set to "${website}.git" by default.
-            repository: 'https://github.com/rexmtorres/Custom-Build-Scripts.git',
+            repository: 'https://github.com/rexmtorres/Packager.git',
 
             // A list of license identifiers for the project. Identifiers can be found here: http://spdx.org/licenses/ and default value is ['Apache-2.0'].
             licenses: ['Apache-2.0'],

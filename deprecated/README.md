@@ -1,6 +1,6 @@
 # Important
 
-The scripts described below are *deprecated*.  They should be replaced with the [Packager Plugin](https://bintray.com/rainai/maven/packager).  Please refer to the [Packager Plugin documentation site](https://rexmtorres.github.io/Custom-Build-Scripts/docs/) for more information.
+The scripts described below are *deprecated*.  They should be replaced with the [Packager Plugin](https://bintray.com/rainai/maven/packager).  Please refer to the [Packager Plugin documentation site](https://rexmtorres.github.io/Packager/docs/) for more information.
 
 <br/>  
 
@@ -9,11 +9,11 @@ The scripts described below are *deprecated*.  They should be replaced with the 
 
 <br/>  
 
-## Custom-Build-Scripts
+## Custom Build Scripts
 
 These are a set of helper methods to help set up Gradle tasks for commonly used actions.  To use this in your Android Studio Gradle projects, apply this script into your module by adding:
 ```gradle
-apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/deprecated/scripts/rmt.gradle'
+apply from: 'https://rexmtorres.github.io/Packager/deprecated/scripts/rmt.gradle'
 ```
 
 <br/>  
@@ -110,7 +110,7 @@ The methods will generate several Gradle tasks.  Most of them will be categorize
 
 Below is an example of a library module using [**exportAar()**](#exportaar), [**calculateLinesOfCode()**](#calculatelinesofcode) and [**createJavaDoc()**](#createjavadoc):
 ```gradle
-apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/deprecated/scripts/rmt.gradle'
+apply from: 'https://rexmtorres.github.io/Packager/deprecated/scripts/rmt.gradle'
 
 android {
     // ...
@@ -153,7 +153,7 @@ android {
 
 Below is an example of an application module using [**exportApk()**](#exportapk), [**calculateLinesOfCode()**](#calculatelinesofcode), [**exportProguardMapping()**](#exportproguardmapping) and [**createJavaDoc()**](#createjavadoc):
 ```gradle
-apply from: 'https://rexmtorres.github.io/Custom-Build-Scripts/deprecated/scripts/rmt.gradle'
+apply from: 'https://rexmtorres.github.io/Packager/deprecated/scripts/rmt.gradle'
 
 android {
     // ...
