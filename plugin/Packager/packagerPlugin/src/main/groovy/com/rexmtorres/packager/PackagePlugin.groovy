@@ -568,12 +568,7 @@ class PackagePlugin implements Plugin<Project> {
                             log("$taskName> Applying SyntaxHighlighter to $it")
 
                             def html = it.text.replaceAll("<(link.+\\s)(href=\")(.+)(/stylesheet\\.css\".+)>",
-                                    """
-                                        <\$1\$2\$3\$4>\r\n
-                                        <script type="text/javascript" src="\$3/js/shCore.js"></script>\r\n
-                                        <script type="text/javascript" src="\\\$3/js/shBrushJava.js"></script>
-                                        <script type="text/javascript" src="\\\$3/js/shBrushXml.js"></script>
-                                    """)
+                                    "<\$1\$2\$3\$4>\r\n<script type=\"text/javascript\" src=\"\$3/js/shCore.js\"></script>\r\n<script type=\"text/javascript\" src=\"\\\$3/js/shBrushJava.js\"></script><script type=\"text/javascript\" src=\"\\\$3/js/shBrushXml.js\"></script>")
                                     .replaceAll("</html>", "<script type=\"text/javascript\">SyntaxHighlighter.all()</script>\r\n</html>")
 
                             it.withWriter { writer -> writer << html }
