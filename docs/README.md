@@ -1,4 +1,4 @@
-[ ![Download](https://api.bintray.com/packages/rainai/maven/packager/images/download.svg) ](https://bintray.com/rainai/maven/packager/_latestVersion)
+[![Download](https://api.bintray.com/packages/rainai/maven/packager/images/download.svg)](https://bintray.com/rainai/maven/packager/_latestVersion)
 [![Build Status](https://travis-ci.com/rexmtorres/Packager.svg?branch=master)](https://travis-ci.com/rexmtorres/Packager)
 
 
@@ -28,7 +28,7 @@ You can apply the plugin to your project in 2 ways:
 
     ```gradle
     plugins {
-        id 'com.rmt.android.packager' version '0.1.1'
+        id 'com.rmt.android.packager' version '0.1.2'
     }
     ````
 - [Legacy Method](https://docs.gradle.org/current/userguide/plugins.html#sec:old_plugin_application):<br/>
@@ -40,7 +40,7 @@ You can apply the plugin to your project in 2 ways:
             jcenter()
         }
         dependencies {
-            classpath group: 'com.rmt.android', name: 'packager', version: '0.1.1'
+            classpath group: 'com.rmt.android', name: 'packager', version: '0.1.2'
         }
     }
 
