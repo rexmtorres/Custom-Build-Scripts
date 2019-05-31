@@ -78,7 +78,11 @@ class PackagePlugin implements Plugin<Project> {
         appPackages.each { app ->
             def variant = app.variant
 
+            // https://stackoverflow.com/questions/54206898/variantoutput-getpackageapplication-is-obsolete
+            // TODO: Should change to (???):
+            //  variant.getPackageApplicationProvider().get().outputs.files[1]
             def srcApk = variant.outputs.first().outputFile
+
             def destApk = app.apkFile
             def destUnsignedApk = app.unsignedApkFile
 
