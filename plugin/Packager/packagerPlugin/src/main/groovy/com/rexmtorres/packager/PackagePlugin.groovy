@@ -81,7 +81,10 @@ class PackagePlugin implements Plugin<Project> {
             // https://stackoverflow.com/questions/54206898/variantoutput-getpackageapplication-is-obsolete
             // TODO: Should change to (???):
             //  variant.getPackageApplicationProvider().get().outputs.files[1]
-            def srcApk = variant.outputs.first().outputFile
+            def apkFileName = variant.outputs.first().outputFileName
+            def apkFolder = variant.getPackageApplicationProvider().get().outputs.files[1]
+
+            def srcApk = new File(apkFolder, apkFileName)
 
             def destApk = app.apkFile
             def destUnsignedApk = app.unsignedApkFile
@@ -126,7 +129,9 @@ class PackagePlugin implements Plugin<Project> {
 
                     archiveName "${variant.dirName}/${srcApk.name}"
                     from project.zipTree(srcApk)
-                    exclude "/META-INF/**"
+                    exclude "/META-INF/MANIFEST.MF"
+                    exclude "/META-INF/**.RSA"
+                    exclude "/META-INF/**.SF"
 
                     doLast {
                         log("$taskName> Deleted META-INF/** $archiveName")
@@ -181,7 +186,12 @@ class PackagePlugin implements Plugin<Project> {
         libPackages.each { lib ->
             def variant = lib.variant
 
-            def srcAar = variant.outputs.first().outputFile
+            //def aarFileName = variant.outputs.first().outputFileName
+            //def aarFolder = variant.getPackageLibrary().getDestinationDir()
+
+            //def srcAar = new File(aarFolder, aarFileName)
+            def srcAar = variant.getPackageLibraryProvider().get().getArchivePath()
+
             def destAar = lib.aarFile
             def destJar = lib.jarFile
 
@@ -263,9 +273,16 @@ class PackagePlugin implements Plugin<Project> {
             def variant = setting.variant
             def varNameCap = variant.name.capitalize()
 
-            def inputFiles = variant.getJavaCompiler().inputs.files.filter {
+//            def inputFiles = variant.getJavaCompiler().inputs.files.filter {
+//                !it.name.endsWith(".jar")
+//            }
+            def inputFiles = variant.getJavaCompileProvider().get().inputs.files.filter {
                 !it.name.endsWith(".jar")
             }
+            inputFiles.each {
+                log("PackagePlugin.setUpStepCounterTasks> **** inputFile: $it")
+            }
+
             def outputFile = setting.outputCsvFile
 
             def stepCounterBuild = new File("${project.buildDir}/stepCounter/${variant.dirName}/files")
@@ -419,10 +436,18 @@ class PackagePlugin implements Plugin<Project> {
             def varNameCap = variant.name.capitalize()
 
             def additionalSourceFiles = setting.additionalSourceFiles
-            def sourceFiles = variant.getJavaCompiler().inputs.files.filter {
+//            def sourceFiles = variant.getJavaCompiler().inputs.files.filter {
+//                it.name.endsWith(".java") ||
+//                        it.name.endsWith(".kt") ||
+//                        it.name.endsWith(".groovy")
+//            }
+            def sourceFiles = variant.getJavaCompileProvider().get().inputs.files.filter {
                 it.name.endsWith(".java") ||
                         it.name.endsWith(".kt") ||
                         it.name.endsWith(".groovy")
+            }
+            sourceFiles.each {
+                log("PackagePlugin.setUpJavaDocTasks> **** sourceFile: $it")
             }
 
             if (additionalSourceFiles != null) {
@@ -430,7 +455,11 @@ class PackagePlugin implements Plugin<Project> {
             }
 
             def additionalClasspathFiles = setting.additionalClasspathFiles
-            def classpathFiles = androidBoothClasspath + variant.getJavaCompiler().outputs.files
+            //def classpathFiles = androidBoothClasspath + variant.getJavaCompiler().outputs.files
+            def classpathFiles = androidBoothClasspath + variant.getJavaCompileProvider().get().outputs.files
+            variant.getJavaCompileProvider().get().outputs.files.each {
+                log("PackagePlugin.setUpJavaDocTasks> **** classpathFile: $it")
+            }
 
             if (additionalClasspathFiles != null) {
                 classpathFiles += additionalClasspathFiles
@@ -444,7 +473,9 @@ class PackagePlugin implements Plugin<Project> {
 
                 dependsOn project.tasks["assemble${varNameCap}"]
 
-                inputs.dir(tempJavadocDir)
+                if (tempJavadocDir.exists()) {
+                    inputs.dir(tempJavadocDir)
+                }
 
                 doLast {
                     if (tempJavadocDir.exists()) {
