@@ -78,9 +78,6 @@ class PackagePlugin implements Plugin<Project> {
         appPackages.each { app ->
             def variant = app.variant
 
-            // https://stackoverflow.com/questions/54206898/variantoutput-getpackageapplication-is-obsolete
-            // TODO: Should change to (???):
-            //  variant.getPackageApplicationProvider().get().outputs.files[1]
             def apkFileName = variant.outputs.first().outputFileName
             def apkFolder = variant.getPackageApplicationProvider().get().outputs.files[1]
 
@@ -186,10 +183,6 @@ class PackagePlugin implements Plugin<Project> {
         libPackages.each { lib ->
             def variant = lib.variant
 
-            //def aarFileName = variant.outputs.first().outputFileName
-            //def aarFolder = variant.getPackageLibrary().getDestinationDir()
-
-            //def srcAar = new File(aarFolder, aarFileName)
             def srcAar = variant.getPackageLibraryProvider().get().getArchivePath()
 
             def destAar = lib.aarFile
@@ -273,9 +266,6 @@ class PackagePlugin implements Plugin<Project> {
             def variant = setting.variant
             def varNameCap = variant.name.capitalize()
 
-//            def inputFiles = variant.getJavaCompiler().inputs.files.filter {
-//                !it.name.endsWith(".jar")
-//            }
             def inputFiles = variant.getJavaCompileProvider().get().inputs.files.filter {
                 !it.name.endsWith(".jar")
             }
@@ -436,11 +426,6 @@ class PackagePlugin implements Plugin<Project> {
             def varNameCap = variant.name.capitalize()
 
             def additionalSourceFiles = setting.additionalSourceFiles
-//            def sourceFiles = variant.getJavaCompiler().inputs.files.filter {
-//                it.name.endsWith(".java") ||
-//                        it.name.endsWith(".kt") ||
-//                        it.name.endsWith(".groovy")
-//            }
             def sourceFiles = variant.getJavaCompileProvider().get().inputs.files.filter {
                 it.name.endsWith(".java") ||
                         it.name.endsWith(".kt") ||
@@ -455,7 +440,6 @@ class PackagePlugin implements Plugin<Project> {
             }
 
             def additionalClasspathFiles = setting.additionalClasspathFiles
-            //def classpathFiles = androidBoothClasspath + variant.getJavaCompiler().outputs.files
             def classpathFiles = androidBoothClasspath + variant.getJavaCompileProvider().get().outputs.files
             variant.getJavaCompileProvider().get().outputs.files.each {
                 log("PackagePlugin.setUpJavaDocTasks> **** classpathFile: $it")
