@@ -67,7 +67,7 @@ class PackagePlugin implements Plugin<Project> {
             return
         }
 
-        log("PackagePlugin.setUpAppTasks> libPackages = $appPackages")
+        log("PackagePlugin.setUpAppTasks> appPackages = $appPackages")
 
         log("PackagePlugin.setUpAppTasks> Creating task 'phExportApp'")
         def appTask = project.task("phExportApp") {
