@@ -48,7 +48,7 @@ class PackageExtension {
     protected StepCounterSettings[] stepCounterSettings = []
 
     /**
-     * If set to {@code true}, debug messages will be printed.  This is {@code false} by default.
+     * If set to <tt>true</tt>, debug messages will be printed.  This is <tt>false</tt> by default.
      */
     boolean debug
 
@@ -68,20 +68,20 @@ class PackageExtension {
      *     }
      * </code></pre>
      * <ul>
-     *     <li>{@code variant} - The build variant of the application to be packaged.  This property
+     *     <li><tt>variant</tt> - The build variant of the application to be packaged.  This property
      *         is <i>mandatory</i>.
-     *     <li>{@code apkFile} - The file to where the APK will be exported.  Note that this may be
+     *     <li><tt>apkFile</tt> - The file to where the APK will be exported.  Note that this may be
      *         a signed or unsigned APK depending on the signing configuration.  <b>If this points
      *         to an existing file, that file will be overwritten.</b>  This property is optional
-     *         <i>if</i> {@code unsignedApkFile} is already defined; that is, at least one of them
-     *         must be present.  If this is not specified, then only {@code unsignedApkFile} will be
+     *         <i>if</i> <tt>unsignedApkFile</tt> is already defined; that is, at least one of them
+     *         must be present.  If this is not specified, then only <tt>unsignedApkFile</tt> will be
      *         exported.
-     *     <li>{@code unsignedApkFile} - The file to where the unsigned APK will be exported.  <b>If
+     *     <li><tt>unsignedApkFile</tt> - The file to where the unsigned APK will be exported.  <b>If
      *         this points to an existing file, that file will be overwritten.</b>  This property is
-     *         optional <i>if</i> {@code apkFile} is already defined; that is, at least one of them
-     *         must be present.  If this is not specified, then only {@code apkFile} will be
+     *         optional <i>if</i> <tt>apkFile</tt> is already defined; that is, at least one of them
+     *         must be present.  If this is not specified, then only <tt>apkFile</tt> will be
      *         exported.
-     *     <li>{@code proguardMapDir} - The directory where the Proguard map files will be exported.
+     *     <li><tt>proguardMapDir</tt> - The directory where the Proguard map files will be exported.
      *         This property is <i>optional</i>.  If this is not specified, then the Proguard map
      *         files will not be exported.
      * </ul>
@@ -119,17 +119,17 @@ class PackageExtension {
      *     }
      * </code></pre>
      * <ul>
-     *     <li>{@code variant} - The build variant of the library to be packaged.  This property is
+     *     <li><tt>variant</tt> - The build variant of the library to be packaged.  This property is
      *         <i>mandatory</i>.
-     *     <li>{@code aarFile} - The file to where the AAR will be exported.  <b>If this points to
+     *     <li><tt>aarFile</tt> - The file to where the AAR will be exported.  <b>If this points to
      *         an existing file, that file will be overwritten.</b>  This property is optional
-     *         <i>if</i> {@code jarFile} is already defined; that is, at least one of them must be
+     *         <i>if</i> <tt>jarFile</tt> is already defined; that is, at least one of them must be
      *         present.  If this is not specified, then only the JAR file will be exported.
-     *     <li>{@code jarFile} - The file to where the JAR will be exported.  <b>If this points to
+     *     <li><tt>jarFile</tt> - The file to where the JAR will be exported.  <b>If this points to
      *         an existing file, that file will be overwritten.</b>  This property is optional
-     *         <i>if</i> {@code aarFile} is already defined; that is, at least one of them must be
+     *         <i>if</i> <tt>aarFile</tt> is already defined; that is, at least one of them must be
      *         present.  If this is not specified, then only the AAR file will be exported.
-     *     <li>{@code proguardMapDir} - The directory where the Proguard map files will be exported.
+     *     <li><tt>proguardMapDir</tt> - The directory where the Proguard map files will be exported.
      *         This property is <i>optional</i>.  If this is not specified, then the Proguard map
      *         files will not be exported.
      * </ul>
@@ -164,7 +164,8 @@ class PackageExtension {
      *     packager {
      *         javadoc {
      *             variant = &lt;{@link BaseVariant}>
-     *             outputZipFile = &lt;{@link File}>
+     *             output = &lt;{@link File}>
+     *             zip = &lt;boolean>
      *             javadocTitle = &lt;{@link String}>
      *             windowTitle = &lt;{@link String}>
      *             failOnError = &lt;boolean>
@@ -177,35 +178,39 @@ class PackageExtension {
      *     }
      * </code></pre>
      * <ul>
-     *     <li>{@code variant} - The build variant of the module for which Javadoc will be
+     *     <li><tt>variant</tt> - The build variant of the module for which Javadoc will be
      *         configured.  This property is <i>mandatory</i>.
-     *     <li>{@code outputZipFile} - The zip file to where the Javadoc will be stored.  <b>If this
-     *         points to an existing file, that file will be overwritten.</b>  This property is
-     *         <i>mandatory</i>.
-     *     <li>{@code javadocTitle} - The title of the Javadoc to be generated.  This property is
+     *     <li><tt>output</tt> - The location where the Javadoc will be placed.  This can either
+     *         refer to a folder or a file, depending on the value of <tt>zip</tt>.  <b>If this
+     *         points to an existing file, that file will be overwritten.  If this points to an
+     *         existing folder, that folder and its contents will be deleted first.</b>  This
+     *         property is <i>mandatory</i>.
+     *     <li><tt>zip</tt> - Indicates whether <tt>output</tt> should be in the form of a zip file
+     *         (<tt>true</tt>) or a folder (<tt>false</tt>).  By default, this is <tt>false</tt>.
+     *     <li><tt>javadocTitle</tt> - The title of the Javadoc to be generated.  This property is
      *         <i>optional</i>.
-     *     <li>{@code windowTitle} - The title to be displayed on the browser window.  This property
+     *     <li><tt>windowTitle</tt> - The title to be displayed on the browser window.  This property
      *         is <i>optional</i>.
-     *     <li>{@code failOnError} - If set to {@code true}, aborts the Javadoc generation if there
+     *     <li><tt>failOnError</tt> - If set to <tt>true</tt>, aborts the Javadoc generation if there
      *         are errors in the Javadoc comments.  Otherwise, attempt to continue.  This property
-     *         is <i>optional</i> and is {@code false} by default.
-     *     <li>{@code javadocMemberLevel} - Specifies which members are included in the Javadoc
-     *         based on their visibility level.  This value maps to the {@code -public},
-     *         {@code -protected}, {@code -package} and {@code -private} options of the
-     *         {@code javadoc} executable. This property is <i>optional</i> and defaults to
+     *         is <i>optional</i> and is <tt>false</tt> by default.
+     *     <li><tt>javadocMemberLevel</tt> - Specifies which members are included in the Javadoc
+     *         based on their visibility level.  This value maps to the <tt>-public</tt>,
+     *         <tt>-protected</tt>, <tt>-package</tt> and <tt>-private</tt> options of the
+     *         <tt>javadoc</tt> executable. This property is <i>optional</i> and defaults to
      *         {@link JavadocMemberLevel#PROTECTED}.
-     *     <li>{@code additionalSourceFiles} - List of additional source files to be included in the
+     *     <li><tt>additionalSourceFiles</tt> - List of additional source files to be included in the
      *         Javadoc.  This property is <i>optional</i>.  The variant's source files are already
      *         included, so there's no need to add them in this property.
-     *     <li>{@code additionalClasspathFiles} - List of additional class paths used to resolve
+     *     <li><tt>additionalClasspathFiles</tt> - List of additional class paths used to resolve
      *         type references in the source codes.  This property is <i>optional</i>.  The
      *         variant's classpath as well as the Android library are already included, so there's
      *         no need to add them in this property.
-     *     <li>{@code excludes} - Set of patterns for files to be excluded from Javadoc.  This
+     *     <li><tt>excludes</tt> - Set of patterns for files to be excluded from Javadoc.  This
      *         property is <i>optional</i>.
-     *     <li>{@code excludes} - Set of patterns for files to be excluded from Javadoc.  This
+     *     <li><tt>excludes</tt> - Set of patterns for files to be excluded from Javadoc.  This
      *         property is <i>optional</i>.
-     *     <li>{@code optionsFile} - {@link File} containing a list of additional Javadoc tool
+     *     <li><tt>optionsFile</tt> - {@link File} containing a list of additional Javadoc tool
      *         options.  This property is <i>optional</i>.
      * </ul>
      *
@@ -219,8 +224,8 @@ class PackageExtension {
             throw new GradleException("javadoc.variant cannot be null!")
         }
 
-        if (javadoc.outputZipFile == null) {
-            throw new GradleException("javadoc.outputZipFile cannot be null!")
+        if (javadoc.output == null) {
+            throw new GradleException("javadoc.output cannot be null!")
         }
 
         javaDocSettings += javadoc
@@ -244,17 +249,17 @@ class PackageExtension {
      *     }
      * </code></pre>
      * <ul>
-     *     <li>{@code variant} - The build variant of the module to be processed.  This property is
+     *     <li><tt>variant</tt> - The build variant of the module to be processed.  This property is
      *         <i>mandatory</i>.
-     *     <li>{@code outputCsvFile} - The CSV report file to be generated.  <b>If this points to an
+     *     <li><tt>outputCsvFile</tt> - The CSV report file to be generated.  <b>If this points to an
      *         existing file, that file will be overwritten.</b>  This property is <i>mandatory</i>.
-     *     <li>{@code additionalSourceFiles} - List of additional source files to be included in the
+     *     <li><tt>additionalSourceFiles</tt> - List of additional source files to be included in the
      *         report.  This property is <i>optional</i>.  The variant's source files
      *         (variant.javaCompile.source) are already included, so there's no need to add them in
      *         this property.
-     *     <li>{@code includes} - Set of patterns for files to be included in the report.  This
+     *     <li><tt>includes</tt> - Set of patterns for files to be included in the report.  This
      *         property is <i>optional</i>.
-     *     <li>{@code excludes} - Set of patterns for files to be excluded in the report.  This
+     *     <li><tt>excludes</tt> - Set of patterns for files to be excluded in the report.  This
      *         property is <i>optional</i>.
      * </ul>
      *

@@ -20,10 +20,23 @@ class JavaDocSettings {
     BaseVariant variant
 
     /**
-     * The zip file to where the Javadoc will be stored.  <b>If this points to an existing file,
-     * that file will be overwritten.</b>  This property is <i>mandatory</i>.
+     * The location where the Javadoc will be placed.  This can either refer to a folder or a file,
+     * depending on the value of {@link #zip}.
+     *
+     * <p>
+     * <b>If this points to an existing file, that file will be overwritten.  If this points to an
+     * existing folder, that folder and its contents will be deleted first.</b>
+     *
+     * <p>
+     * This property is <i>mandatory</i>.
      */
-    File outputZipFile
+    File output
+
+    /**
+     * Indicates whether {@link #output} should be in the form of a zip file (<tt>true</tt>) or a
+     * folder (<tt>false</tt>).  By default, this is <tt>false</tt>.
+     */
+    boolean zip
 
     /**
      * The javadocTitle of the Javadoc to be generated.  This property is <i>optional</i>.
@@ -36,16 +49,16 @@ class JavaDocSettings {
     String windowTitle
 
     /**
-     * If set to {@code true}, aborts the Javadoc generation if there are errors in the Javadoc
+     * If set to <tt>true</tt>, aborts the Javadoc generation if there are errors in the Javadoc
      * comments.  Otherwise, attempt to continue.  This property is <i>optional</i> and is
-     * {@code false} by default.
+     * <tt>false</tt> by default.
      */
     boolean failOnError
 
     /**
      * Specifies which members are included in the Javadoc based on their visibility level.  This
-     * value maps to the {@code -public}, {@code -protected}, {@code -package} and {@code -private}
-     * options of the {@code javadoc} executable. This property is <i>optional</i> and defaults to
+     * value maps to the <tt>-public</tt>, <tt>-protected</tt>, <tt>-package</tt> and <tt>-private</tt>
+     * options of the <tt>javadoc</tt> executable. This property is <i>optional</i> and defaults to
      * {@link JavadocMemberLevel#PROTECTED}.
      */
     JavadocMemberLevel javadocMemberLevel
@@ -79,7 +92,8 @@ class JavaDocSettings {
     String toString() {
         return """|doc${variant.name.capitalize()} {
                   |    variant = $variant
-                  |    outputZipFile = $outputZipFile
+                  |    output = $output
+                  |    zip = $zip
                   |    javadocTitle = $javadocTitle
                   |    windowTitle = $windowTitle
                   |    failOnError = $failOnError

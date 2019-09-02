@@ -15,7 +15,7 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.internal.os.OperatingSystem
 
 /**
- * Plugin class for processing the {@code packager} extension defined by {@link PackageExtension}.
+ * Plugin class for processing the <tt>packager</tt> extension defined by {@link PackageExtension}.
  */
 class PackagePlugin implements Plugin<Project> {
     private final static def groupPackagerMain = "packager"
@@ -451,6 +451,7 @@ class PackagePlugin implements Plugin<Project> {
 
             def tempJavadocDir = new File("${project.buildDir}/phjavadoc/${variant.dirName}")
 
+            // Task: Delete any old Javadoc files in the build directory...
             log("PackagePlugin.setUpJavaDocTasks> Creating task 'phDeleteJavadocFilesFor${varNameCap}'")
             def taskDeleteJavadoc = project.task("phDeleteJavadocFilesFor${varNameCap}") {
                 def taskName = name
@@ -469,6 +470,7 @@ class PackagePlugin implements Plugin<Project> {
                 }
             }
 
+            // Task: Generate Javadocs in the build directory...
             log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocFilesFor${varNameCap}'")
             def taskJavadoc = project.task("phGenerateJavadocFilesFor${varNameCap}", type: Javadoc) {
                 def taskName = name
@@ -560,6 +562,7 @@ class PackagePlugin implements Plugin<Project> {
 
             def syntaxHighlighterRes = new File("${cacheLoc}/${resourceSyntaxHighlighter}")
 
+            // Task: Beautify the generated Javadocs in the build directory using SyntaxHighlighter...
             log("PackagePlugin.setUpJavaDocTasks> Creating task 'phApplySyntaxHighlighterFor${varNameCap}'")
             def taskSyntaxHighlighter = project.task("phApplySyntaxHighlighterFor${varNameCap}") {
                 def taskName = name
@@ -605,30 +608,58 @@ class PackagePlugin implements Plugin<Project> {
                 }
             }
 
-            def outputFile = setting.outputZipFile
+            def outputLocation = setting.output
 
-            log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocFor${varNameCap}'")
-            javadocTask.dependsOn project.task("phGenerateJavadocFor${varNameCap}", type: Zip) {
-                def taskName = name
+            if (setting.zip) {
+                log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocZipFor${varNameCap}'")
+                javadocTask.dependsOn project.task("phGenerateJavadocZipFor${varNameCap}", type: Zip) {
+                    def taskName = name
 
-                dependsOn taskSyntaxHighlighter
-                group groupPackagerOthers
-                description "Generates Javadoc for ${varNameCap}."
+                    dependsOn taskSyntaxHighlighter
+                    group groupPackagerOthers
+                    description "Generates Javadoc for ${varNameCap}."
 
-                inputs.dir(tempJavadocDir)
-                outputs.file(outputFile)
+                    inputs.dir(tempJavadocDir)
+                    outputs.file(outputLocation)
 
-                baseName "javadoc${varNameCap}"
-                from tempJavadocDir
-                into "API Guide"
+                    baseName "javadoc${varNameCap}"
+                    from tempJavadocDir
+                    into "API Guide"
 
-                doLast {
-                    log("$taskName> Copying $archivePath to $outputFile")
+                    doLast {
+                        log("$taskName> Copying $archivePath to $outputLocation")
 
-                    project.copy {
-                        from archivePath
-                        into outputFile.parentFile
-                        rename "${baseName}.zip", outputFile.name
+                        project.copy {
+                            from archivePath
+                            into outputLocation.parentFile
+                            rename "${baseName}.zip", outputLocation.name
+                        }
+                    }
+                }
+            } else {
+                log("PackagePlugin.setUpJavaDocTasks> Creating task 'phGenerateJavadocFolderFor${varNameCap}'")
+                javadocTask.dependsOn project.task("phGenerateJavadocFolderFor${varNameCap}", type: Copy) {
+                    def taskName = name
+
+                    dependsOn taskSyntaxHighlighter
+                    group groupPackagerOthers
+                    description "Generates Javadoc for ${varNameCap}."
+
+                    inputs.dir(tempJavadocDir)
+                    outputs.dir(outputLocation)
+
+                    doFirst {
+                        if (outputLocation.exists()) {
+                            log("$taskName> Deleting $outputLocation")
+                            outputLocation.deleteDir()
+                        }
+                    }
+
+                    from(tempJavadocDir)
+                    into(outputLocation)
+
+                    doLast {
+                        log("$taskName> Copied $tempJavadocDir to $outputLocation")
                     }
                 }
             }
@@ -711,12 +742,12 @@ class PackagePlugin implements Plugin<Project> {
      *          <ol>
      *              <li>If on Windows, enclose path in double quotes.<br>
      *                  Example:<br>
-     *                  &nbsp;&nbsp;&nbsp;&nbsp;Original: <b>{@code C:\Path with\spaces\in the\file name.txt}</b><br>
-     *                  &nbsp;&nbsp;&nbsp;&nbsp;Normalized: <b>{@code "C:\Path with\spaces\in the\file name.txt"}</b>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Original: <b><tt>C:\Path with\spaces\in the\file name.txt</tt></b><br>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Normalized: <b><tt>"C:\Path with\spaces\in the\file name.txt"</tt></b>
      *              <li>Else (if on Linux/Max OS), escape the space(s).<br>
      *                  Example:<br>
-     *                  &nbsp;&nbsp;&nbsp;&nbsp;Original: <b>{@code /Path with/spaces/in the/file name.txt}</b><br>
-     *                  &nbsp;&nbsp;&nbsp;&nbsp;Normalized: <b>{@code /Path\ with/spaces/in\ the/file\ name.txt}</b>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Original: <b><tt>/Path with/spaces/in the/file name.txt</tt></b><br>
+     *                  &nbsp;&nbsp;&nbsp;&nbsp;Normalized: <b><tt>/Path\ with/spaces/in\ the/file\ name.txt</tt></b>
      *          </ol>
      *     <li>Else, return the path.
      * </ol>

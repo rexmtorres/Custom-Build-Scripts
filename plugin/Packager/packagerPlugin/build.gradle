@@ -1,5 +1,5 @@
 plugins {
-    id "com.gradle.plugin-publish" version "0.10.0"
+    id "com.gradle.plugin-publish" version "0.10.1"
     id 'java-gradle-plugin'
     id 'groovy'
 }
@@ -11,7 +11,7 @@ ext {
             artifactId: 'packager',
 
             // A string with the version to use. Can't end with -SNAPSHOT because bintray doesn't accept snapshots.
-            publishVersion: '0.2.0-alpha02',
+            publishVersion: '0.3.0-alpha01',
 
             // The group id to use for the upload.
             groupId: 'com.rmt.android',
