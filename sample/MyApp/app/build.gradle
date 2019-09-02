@@ -2,15 +2,15 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.rmt.android.packager'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
 
     defaultConfig {
         applicationId "com.rexmtorres.test"
         minSdkVersion 16
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -43,7 +43,8 @@ android {
                 javadocTitle = appVariant.name
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludes = ["**/BuildConfig.java", "**/R.java", "**/internal/**"]
-                outputZipFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
+                output = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
+                zip = true
             }
         }
     }
@@ -51,8 +52,8 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'androidx.appcompat:appcompat:1.0.2'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    androidTestImplementation 'androidx.test:runner:1.2.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }
