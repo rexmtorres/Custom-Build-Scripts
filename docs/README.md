@@ -28,7 +28,7 @@ You can apply the plugin to your project in 2 ways:
 
     ```gradle
     plugins {
-        id 'com.rmt.android.packager' version '0.2.0-alpha01'
+        id 'com.rmt.android.packager' version '0.3.0-alpha01'
     }
     ````
 - [Legacy Method](https://docs.gradle.org/current/userguide/plugins.html#sec:old_plugin_application):<br/>
@@ -40,7 +40,7 @@ You can apply the plugin to your project in 2 ways:
             jcenter()
         }
         dependencies {
-            classpath group: 'com.rmt.android', name: 'packager', version: '0.2.0-alpha01'
+            classpath group: 'com.rmt.android', name: 'packager', version: '0.3.0-alpha01'
         }
     }
 
@@ -81,7 +81,7 @@ Usage:
 | `variant`         | The build variant of the application to be packaged. This property is *mandatory*.                                                                                                                                                                                                                                                                                                                    |
 | `apkFile`         | The file to where the APK will be exported. Note that this may be a signed or unsigned APK depending on the signing configuration. **If this points to an existing file, that file will be overwritten.** This property is optional *if* `unsignedApkFile` is already defined; that is, at least one of them must be present. If this is not specified, then only `unsignedApkFile` will be exported. |
 | `unsignedApkFile` | The file to where the unsigned APK will be exported. **If this points to an existing file, that file will be overwritten.** This property is optional *if* `apkFile` is already defined; that is, at least one of them must be present. If this is not specified, then only `apkFile` will be exported.                                                                                               |
-| `proguardMapDir`  | The directory where the Proguard map files will be exported. This property is *optional*. If this is not specified, then the Proguard map files will not be exported.                                                                                                                                                                                                                                 |
+| `proguardMapDir`  | The directory where the Proguard map files will be exported. This property is *optional*. If this is not specified, then the Proguard map files will not be exported.  ***Note:*** This is now deprecated.  There are now a few obfuscation tools available aside from Proguard (e.g. Dexguard and Google's own R8).  These have different outputs and it's not worth it to have specific code for each.  The user is better of handling this on his/her own. |
 
 ____________________________________________________
 ### <a name="lib"></a>`void lib(Closure libClosure)`
@@ -105,7 +105,7 @@ Usage:
 | `variant`        | The build variant of the application to be packaged. This property is *mandatory*.                                                                                                                                                                                                                |
 | `aarFile`        | The file to where the AAR will be exported. **If this points to an existing file, that file will be overwritten.** This property is optional *if* `jarFile` is already defined; that is, at least one of them must be present. If this is not specified, then only the JAR file will be exported. |
 | `jarFile`        | The file to where the JAR will be exported. **If this points to an existing file, that file will be overwritten.** This property is optional *if* `aarFile` is already defined; that is, at least one of them must be present. If this is not specified, then only the AAR file will be exported. |
-| `proguardMapDir` | The directory where the Proguard map files will be exported. This property is *optional*. If this is not specified, then the Proguard map files will not be exported.                                                                                                                             |
+| `proguardMapDir`  | The directory where the Proguard map files will be exported. This property is *optional*. If this is not specified, then the Proguard map files will not be exported.  ***Note:*** This is now deprecated.  There are now a few obfuscation tools available aside from Proguard (e.g. Dexguard and Google's own R8).  These have different outputs and it's not worth it to have specific code for each.  The user is better of handling this on his/her own. |
 
 ________________________________________________________________
 ### <a name="javadoc"></a>`void javadoc(Closure javadocClosure)`
@@ -119,7 +119,8 @@ Usage:
     packager {
         javadoc {
             variant = <BaseVariant>
-            outputZipFile = <File>
+            output = <File>
+            zip = <boolean>
             javadocTitle = <String>
             windowTitle = <String>
             failOnError = <boolean>
@@ -135,7 +136,8 @@ Usage:
 | Property                   | Description                                                                                                                                                                                                                                                                                                                                                                            |
 | -------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `variant`                  | The build variant of the application to be packaged. This property is *mandatory*.                                                                                                                                                                                                                                                                                                     |
-| `outputZipFile`            | The zip file to where the Javadoc will be stored. **If this points to an existing file, that file will be overwritten.** This property is *mandatory*.                                                                                                                                                                                                                                 |
+| `output`                   | The location where the Javadoc will be placed.  This can either refer to a folder or a file, depending on the value of `zip`.  **If this points to an existing file, that file will be overwritten.  If this points to an existing folder, that folder and its contents will be deleted first.**  This property is *mandatory*.                                                        |
+| `zip`                      | Indicates whether `output` should be in the form of a zip file (`true`) or a folder (`false`).  By default, this is `false`.                                                                                                                                                                                                                                                           |
 | `javadocTitle`             | The title of the Javadoc to be generated. This property is *optional*.                                                                                                                                                                                                                                                                                                                 |
 | `windowTitle`              | The title to be displayed on the browser window. This property is *optional*.                                                                                                                                                                                                                                                                                                          |
 | `failOnError`              | If set to `true`, aborts the Javadoc generation if there are errors in the Javadoc comments. Otherwise, attempt to continue. This property is *optional* and is `false` by default.                                                                                                                                                                                                    |
@@ -196,13 +198,13 @@ Other tasks are also generated in the `phothers` group.  You will, generally, no
 
 | Task                                  | Description                                                                                                                                                                                                                                                                                                                                                                |
 | ------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `phExport`**_`Variant`_**`Apk`            | This exports the APK of the specified variant to the location indicated by `apkFile` in the [app](#app) closure.  Note that this does not modify the original APK in the build folder.                                                                                                                                                                                     |
-| `phExport`**_`Variant`_**`UnsignedApk`    |  This removes the signature of the APK of the specified variant and exports it to the location indicated by `unsignedApkFile` in the [app](#app) closure.  Note that this does not modify the original APK in the build folder.                                                                                                                                            |
-| `phExport`**_`Variant`_**`Aar`            | This exports the AAR of the specified variant to the location indicated by `aarFile` in the [lib](#lib) closure.  Note that this does not modify the original AAR in the build folder.                                                                                                                                                                                     |
-| `phExport`**_`Variant`_**`Jar`            |  This extracts the JAR file (classes.jar) in the AAR of the specified variant and exports it to the location indicated by `jarFile` in the [lib](#lib) closure.  Note that this does not modify the original AAR in the build folder.                                                                                                                                      |
-| `phExport`**_`Variant`_**`ProguardMap`    | This copies the Proguard map files of the specified variant to the location indicated by `proguardMapDir` in the [app](#app) / [lib](#lib) closures.                                                                                                                                                                                                                       |
-| `phGenerateJavadocFor`**_`Variant`_**     | This generates the Javadoc of the specified variant and exports the zipped documentation to the location indicated by `outputZipFile` in the [javadoc](#javadoc) closure.  Note that this applies [SyntaxHighlighter](http://alexgorbatchev.com/SyntaxHighlighter/) to your Javadoc, so you can take advantage of fancy formatting for your code snippets in your Javadoc. |
-| `phGenerateStepCounterFor`**_`Variant`_** | This calculates the number of lines of code in your module, for the specified variant, using [Amateras StepCounter](https://github.com/takezoe/stepcounter).  The generated CSV report is written in the location indicated by `outputCsvFile` in the [stepCounter](#stepCounter) closure.                                                       |
+| `phExport`**_`Variant`_**`Apk`                                                    | This exports the APK of the specified variant to the location indicated by `apkFile` in the [app](#app) closure.  Note that this does not modify the original APK in the build folder.                                                                                                                                                                                     |
+| `phExport`**_`Variant`_**`UnsignedApk`                                            | This removes the signature of the APK of the specified variant and exports it to the location indicated by `unsignedApkFile` in the [app](#app) closure.  Note that this does not modify the original APK in the build folder.                                                                                                                                            |
+| `phExport`**_`Variant`_**`Aar`                                                    | This exports the AAR of the specified variant to the location indicated by `aarFile` in the [lib](#lib) closure.  Note that this does not modify the original AAR in the build folder.                                                                                                                                                                                     |
+| `phExport`**_`Variant`_**`Jar`                                                    | This extracts the JAR file (classes.jar) in the AAR of the specified variant and exports it to the location indicated by `jarFile` in the [lib](#lib) closure.  Note that this does not modify the original AAR in the build folder.                                                                                                                                      |
+| `phExport`**_`Variant`_**`ProguardMap`                                            | This copies the Proguard map files of the specified variant to the location indicated by `proguardMapDir` in the [app](#app) / [lib](#lib) closures.                                                                                                                                                                                                                       |
+| `phGenerateJavadocFor`**_`Variant`_** or `phGenerateJavadocZipFor`**_`Variant`_** | This generates the Javadoc of the specified variant and exports the zipped documentation to the location indicated by `outputZipFile` in the [javadoc](#javadoc) closure.  Note that this applies [SyntaxHighlighter](http://alexgorbatchev.com/SyntaxHighlighter/) to your Javadoc, so you can take advantage of fancy formatting for your code snippets in your Javadoc. |
+| `phGenerateStepCounterFor`**_`Variant`_**                                         | This calculates the number of lines of code in your module, for the specified variant, using [Amateras StepCounter](https://github.com/takezoe/stepcounter).  The generated CSV report is written in the location indicated by `outputCsvFile` in the [stepCounter](#stepCounter) closure.                                                       |
 
 <br/>
 
@@ -252,7 +254,8 @@ android {
                 javadocTitle = appVariant.name
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludes = ["**/BuildConfig.java", "**/R.java", "**/internal/**"]
-                outputZipFile = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
+                output = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
+                zip = true
             }
         }
     }
@@ -311,7 +314,8 @@ android {
                 javadocTitle = libVariant.name
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludes = ["**/BuildConfig.java", "**/R.java", "**/internal/**"]
-                outputZipFile = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
+                output = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
+                zip = true
             }
         }
     }
