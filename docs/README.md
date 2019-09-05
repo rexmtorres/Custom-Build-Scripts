@@ -255,7 +255,7 @@ android {
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludes = ["**/BuildConfig.java", "**/R.java", "**/internal/**"]
                 output = file("${rootProject.buildDir}/MyApp/App/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
-                zip = true
+                zip = true // Archive the Javadoc into a zip file.
             }
         }
     }
@@ -314,8 +314,8 @@ android {
                 javadocTitle = libVariant.name
                 javadocMemberLevel = JavadocMemberLevel.PROTECTED
                 excludes = ["**/BuildConfig.java", "**/R.java", "**/internal/**"]
-                output = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/API_v${defaultConfig.versionName}.zip")
-                zip = true
+                output = file("${rootProject.buildDir}/MyApp/Lib/${variant.dirName}/API_v${defaultConfig.versionName}")
+                zip = false // Output the Javadoc to a folder instead of a zip file
             }
         }
     }
