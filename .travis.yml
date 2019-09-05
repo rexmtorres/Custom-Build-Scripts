@@ -1,4 +1,6 @@
 language: groovy
+jdk:
+  - oraclejdk8
 before_script:
   - pushd plugin/Packager/
 script:
